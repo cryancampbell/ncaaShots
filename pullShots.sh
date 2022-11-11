@@ -5,7 +5,7 @@ alias chrome="/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome"
 
 GAMENUM=$1
 
-chrome --headless --disable-gpu --dump-dom  `echo "http://gamezone.stats.com/gz3/basketball/cbk/"$GAMENUM` > tmp.html
+chrome --headless --disable-gpu --dump-dom  `echo "http://gamezone.stats.com/gz3/basketball/cbk/"$GAMENUM` > tmp.html 2> err.txt
 
 #want
 
@@ -29,8 +29,8 @@ AWAYSCORE=`cat tmp.html | grep -m1 -B2 gz_homeTm | head -n1 | sed 's/.*<div clas
 
 echo $GAMENUM,$YEAR,$MONTH,$DAY,$DATESC,$AWAY,$AWAYSCORE,$HOME,$HOMESCORE > summary.csv
 
-
 #find out Neutral?
+
 
 ## play by play
 grep Substitution tmp.html | sed 's/<tr pbpid="." class="shsRow1Row shsPBPRow">/\n/g' \
@@ -74,13 +74,72 @@ for P in `seq 1 $PBPLINES`; do
 done
 
 ## get starters... somehow?
-## use playerID number
-## get subs from pbpWsectime.csv
-## GAMENUM,SECTIME,HOME1,HOME2,...,AWAY5
-## sub happens
-## GAMENUM,SECTIME,HOME1,HOME2,...,AWAY5
+#grep boxPlayers tmpFiles/tmp.html | sed 's/<.tr>/\n/g' | sed 's/.*playerPopout/;/g' | sed 's/<.span>.*/;/g' | grep -v "<.tbody>"
+grep boxPlayers tmp.html | sed 's/<.tr>/\n/g' | sed 's/.*playerPopout/;/g' | sed 's/<.span>.*/;/g' | grep -v "<.tbody>" > playerList.tmp 
+#top 5 are starters
+AWAYROWS=`grep -n totalRow playerList.tmp | cut -d: -f1 | head -n1`
+HOMEROWS=`grep -n totalRow playerList.tmp | cut -d: -f1 | tail -n1`
 
+#away players
+head -n$((AWAYROWS - 1)) playerList.tmp | sed 's/ currentBoxTeamId, event);">                                          //g' \
+			| sed 's/                                      ;//g' \
+			| sed 's/;(//g' | sed 's/$/,'$AWAY'/g' > awayPlayers.csv
+#home players
+tail -n$((HOMEROWS - AWAYROWS)) playerList.tmp | head -n $((HOMEROWS - AWAYROWS - 1)) \
+			| sed 's/ currentBoxTeamId, event);">                                          //g' \
+			| sed 's/                                      ;//g' \
+			| sed 's/;(//g' | sed 's/$/,'$HOME'/g' > homePlayers.csv
 
+cat awayPlayers.csv homePlayers.csv > players.csv
+
+# step 1 - put starters in at 2475381,0,1st,20:00,,,,Start of the 1st Half
+A1=`head -n1 awayPlayers.csv | cut -d, -f1 | tail -n1`
+A2=`head -n2 awayPlayers.csv | cut -d, -f1 | tail -n1`
+A3=`head -n3 awayPlayers.csv | cut -d, -f1 | tail -n1`
+A4=`head -n4 awayPlayers.csv | cut -d, -f1 | tail -n1`
+A5=`head -n5 awayPlayers.csv | cut -d, -f1 | tail -n1`
+H1=`head -n1 homePlayers.csv | cut -d, -f1 | tail -n1`
+H2=`head -n2 homePlayers.csv | cut -d, -f1 | tail -n1`
+H3=`head -n3 homePlayers.csv | cut -d, -f1 | tail -n1`
+H4=`head -n4 homePlayers.csv | cut -d, -f1 | tail -n1`
+H5=`head -n5 homePlayers.csv | cut -d, -f1 | tail -n1`
+
+### JUST NEED TO ADD A TIP CATEGORY (AKA NOT SUB) WHERE THE STARTERS ARE INSERTED
+### ADD THIS DIRECTLY TO THE SUBS.CSV FILE
+
+#echo $GAMENUM,0,1st,20:00,,,,Tip-off.,$A1,$A2,$A3,$A4,$A5,$H1,$H2,$H3,$H4,$H5 > subLineups.csv
+#ONTHEFLOOR=`echo $A1,$A2,$A3,$A4,$A5,$H1,$H2,$H3,$H4,$H5`
+#grep ,,,Substitution: pbpWsectime.csv | sort -n > subs.csv
+
+echo $GAMENUM,0,1st,20:00,,,,Tip-off. > subsWTip.csv
+grep ,,,Substitution: pbpWsectime.csv | sort -n | grep ,1st, >> subsWTip.csv
+echo $GAMENUM,0,2nd,20:00,,,,Tip-off. >> subsWTip.csv
+grep ,,,Substitution: pbpWsectime.csv | sort -n | grep ,2nd, >> subsWTip.csv
+
+SUBCOUNT=`wc -l subsWTip.csv | sed 's/ subsWTip.csv//g' | sed 's/ //g'`
+
+rm subLineups.csv
+for S in `seq 1 $SUBCOUNT`; do
+	SUB=`head -n$S subsWTip.csv | tail -n1`
+	TIPOFF=`echo $SUB | grep -c ,Tip-off.`
+	if [[ TIPOFF -eq 1 ]]; then
+		ONTHEFLOOR=`echo $A1,$A2,$A3,$A4,$A5,$H1,$H2,$H3,$H4,$H5`
+	else
+		PLAYERIN=`echo $SUB | sed 's/.*Substitution: //g' | sed 's/ in for .*//g'`
+		PLAYEROUT=`echo $SUB | sed 's/.* in for //g' | sed 's/\.//g'`
+		SUBAWAY=`echo $SUB | grep -c $AWAY`
+		if [[ SUBAWAY -eq 1 ]]; then
+			NUMBERIN=`grep "$PLAYERIN" awayPlayers.csv | cut -d, -f1`
+			NUMBEROUT=`grep "$PLAYEROUT" awayPlayers.csv | cut -d, -f1`
+		else
+			NUMBERIN=`grep "$PLAYERIN" homePlayers.csv | cut -d, -f1`
+			NUMBEROUT=`grep "$PLAYEROUT" homePlayers.csv | cut -d, -f1`
+		fi
+		NEWONTHEFLOOR=`echo $ONTHEFLOOR | sed 's/,'$NUMBEROUT',/,'$NUMBERIN',/g'`
+		ONTHEFLOOR=`echo $NEWONTHEFLOOR`
+	fi
+	echo $SUB,$ONTHEFLOOR >> subLineups.csv
+done
 
 ## shot list
 cat tmp.html | grep -B2 "mvc_sc_period=" \
@@ -145,3 +204,5 @@ for L in `seq 1 $HALFLINES`; do
 
 	echo $GAMENUM,$SECTIME,$KEEPTEXT,$DIST,$ASSIST,$ASSISTER,$BLOCK,$BLOCKER,$THREEPT,$DUNK,$LAYUP,$HOOK,$JUMPER,$TEXT >> shots.csv
 done
+
+rm awayPlayers.csv err.txt nonTextPBP.ssv pbp.ssv playerList.tmp subs.csv tmp.html dehtml.csv homePlayers.csv pbp.csv subsWTip.csv textPBP.ssv uniqhtml.csv
