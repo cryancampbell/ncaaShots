@@ -83,12 +83,12 @@ HOMEROWS=`grep -n totalRow playerList.tmp | cut -d: -f1 | tail -n1`
 #away players
 head -n$((AWAYROWS - 1)) playerList.tmp | sed 's/ currentBoxTeamId, event);">                                          //g' \
 			| sed 's/                                      ;//g' \
-			| sed 's/;(//g' | sed 's/$/,'$AWAY'/g' > awayPlayers.csv
+			| sed 's/;(//g' | sed 's/$/,'"$AWAY"'/g' > awayPlayers.csv
 #home players
 tail -n$((HOMEROWS - AWAYROWS)) playerList.tmp | head -n $((HOMEROWS - AWAYROWS - 1)) \
 			| sed 's/ currentBoxTeamId, event);">                                          //g' \
 			| sed 's/                                      ;//g' \
-			| sed 's/;(//g' | sed 's/$/,'$HOME'/g' > homePlayers.csv
+			| sed 's/;(//g' | sed 's/$/,'"$HOME"'/g' > homePlayers.csv
 
 cat awayPlayers.csv homePlayers.csv > players.csv
 
@@ -103,13 +103,6 @@ H2=`head -n2 homePlayers.csv | cut -d, -f1 | tail -n1`
 H3=`head -n3 homePlayers.csv | cut -d, -f1 | tail -n1`
 H4=`head -n4 homePlayers.csv | cut -d, -f1 | tail -n1`
 H5=`head -n5 homePlayers.csv | cut -d, -f1 | tail -n1`
-
-### JUST NEED TO ADD A TIP CATEGORY (AKA NOT SUB) WHERE THE STARTERS ARE INSERTED
-### ADD THIS DIRECTLY TO THE SUBS.CSV FILE
-
-#echo $GAMENUM,0,1st,20:00,,,,Tip-off.,$A1,$A2,$A3,$A4,$A5,$H1,$H2,$H3,$H4,$H5 > subLineups.csv
-#ONTHEFLOOR=`echo $A1,$A2,$A3,$A4,$A5,$H1,$H2,$H3,$H4,$H5`
-#grep ,,,Substitution: pbpWsectime.csv | sort -n > subs.csv
 
 echo $GAMENUM,0,1st,20:00,,,,Tip-off. > subsWTip.csv
 grep ,,,Substitution: pbpWsectime.csv | sort -n | grep ,1st, >> subsWTip.csv
@@ -205,4 +198,4 @@ for L in `seq 1 $HALFLINES`; do
 	echo $GAMENUM,$SECTIME,$KEEPTEXT,$DIST,$ASSIST,$ASSISTER,$BLOCK,$BLOCKER,$THREEPT,$DUNK,$LAYUP,$HOOK,$JUMPER,$TEXT >> shots.csv
 done
 
-rm awayPlayers.csv err.txt nonTextPBP.ssv pbp.ssv playerList.tmp subs.csv tmp.html dehtml.csv homePlayers.csv pbp.csv subsWTip.csv textPBP.ssv uniqhtml.csv
+rm awayPlayers.csv err.txt nonTextPBP.ssv pbp.ssv playerList.tmp tmp.html dehtml.csv homePlayers.csv pbp.csv subsWTip.csv textPBP.ssv uniqhtml.csv
