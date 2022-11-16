@@ -1,10 +1,125 @@
-address <- "http://gamezone.stats.com/gz3/basketball/cbk/2475381"
-gameNum <- "2475381"
 
-gzShots <- function(gameNum) {
-  #run pullShots.sh on gameNum
-  #sh pullShots.sh gameNum
-  #parse output (shots.csv) and save
-  #augment shotDB and gameDB
-  #output dataframe
+gzShots <- function(gameNum, 
+                    shotDB,
+                    playerDB,
+                    gameDB) {
+  if ( !gameNum %in% gameDB$gameNum) {
+    
+    #if not, run pullShots.sh
+    shotCmd <- paste0("sh pullShots.sh ",gameNum)
+    system(shotCmd)
+    
+    pbp <- read.csv(paste0(gitDir,"tmpFiles/pbpWsectime.csv"), header = F, dec = ".", sep = ",")
+    players <- read.csv(paste0(gitDir,"tmpFiles/players.csv"), header = F, dec = ".", sep = ",")
+    shots <- read.csv(paste0(gitDir,"tmpFiles/shots.csv"), header = F, dec = ".", sep = ",")
+    subs <- read.csv(paste0(gitDir,"tmpFiles/subLineups.csv"), header = F, dec = ".", sep = ",")
+    summ <- read.csv(paste0(gitDir,"tmpFiles/summary.csv"), header = F, dec = ".", sep = ",")
+    
+    #combine shots/subs/pbp (for shot clock)
+    colnames(pbp) <- c("gameNum","secs","half","gameClock","team",
+                       "awayScore","homeScore","playText")
+    pbp <- pbp[order(-as.numeric(rownames(pbp))),]
+    
+    colnames(subs) <- c("gameNum","secs","half","gameClock","team",
+                        "awayScore","homeScore","playText",
+                        "a1","a2","a3","a4","a5",
+                        "h1","h2","h3","h4","h5")
+    
+    colnames(shots) <- c("gameNum","secs","outcome","team","playerID",
+                         "playerName","half","gameClock","halfN","xPos","yPos",
+                         "textDist","assist","assister","block","blocker",
+                         "three","dunk","layup","hook","jumper","playText")
+    
+    colnames(summ) <- c("gameNum","year","month","day","date",
+                        "away","awayAbbv","awayScore",
+                        "home","homeAbbv","homeScore")
+    
+    colnames(players) <- c("playerID","playerName","team","teamAbbv")
+    
+    pbp$fullReset <- FALSE
+    pbp$shortReset <- FALSE
+    
+    #full resets
+    pbp$fullReset[grep(pattern = " makes ", x = pbp$playText, ignore.case = T)] <- TRUE
+    pbp$fullReset[grep(pattern = " misses ", x = pbp$playText, ignore.case = T)] <- TRUE
+    pbp$fullReset[grep(pattern = "turnover", x = pbp$playText, ignore.case = T)] <- TRUE
+    pbp$fullReset[grep(pattern = "defensive rebound", x = pbp$playText, ignore.case = T)] <- TRUE
+    pbp$fullReset[grep(pattern = "offensive foul", x = pbp$playText, ignore.case = T)] <- TRUE
+    pbp$fullReset[grep(pattern = "Start of the ", x = pbp$playText, ignore.case = T)] <- TRUE
+    pbp$fullReset[grep(pattern = " steals ", x = pbp$playText, ignore.case = T)] <- TRUE
+    pbp$fullReset[grep(pattern = "Personal foul committed ", x = pbp$playText, ignore.case = T)] <- TRUE
+    
+    #short resets
+    pbp$shortReset[grep(pattern = "turnover", x = pbp$playText, ignore.case = T)] <- TRUE
+    pbp$shortReset[grep(pattern = "offensive rebound", x = pbp$playText, ignore.case = T)] <- TRUE
+    pbp$shortReset[grep(pattern = "Start of the ", x = pbp$playText, ignore.case = T)] <- TRUE
+    
+    pbp$shotClock <- 30
+    
+    for (p in 1:dim(pbp)[1]) {
+      #not a half start
+      if (!grepl(pattern = "Start of the ", x = pbp$playText[p])) {
+        clockTime <- pbp$secs[p]
+        lastFullReset <- tail(subset(pbp, secs < clockTime & fullReset)$secs, n = 1)
+        lastShortReset <- tail(subset(pbp, secs < clockTime & shortReset)$secs, n = 1)
+        if (lastShortReset > lastFullReset) {
+          pbp$shotClock[p] <- 21 - (clockTime - lastShortReset)
+        } else {
+          pbp$shotClock[p] <- 31 - (clockTime - lastFullReset)
+        }
+      }
+    }
+    
+    pbp$a1 <- ""; pbp$a2 <- ""; pbp$a3 <- ""; pbp$a4 <- ""; pbp$a5 <- ""
+    pbp$h1 <- ""; pbp$h2 <- ""; pbp$h3 <- ""; pbp$h4 <- ""; pbp$h5 <- ""
+    
+    pbpLineupCols <- which(colnames(pbp) %in% c("a1","a2","a3","a4","a5","h1","h2","h3","h4","h5"))
+    subLineupCols <- which(colnames(subs) %in% c("a1","a2","a3","a4","a5","h1","h2","h3","h4","h5"))
+    
+    subCounter <- 1
+    pbp[1,pbpLineupCols] <- subs[subCounter,subLineupCols]
+    lineupSec <- subs$secs[subCounter + 1]
+    
+    for (p in 2:dim(pbp)[1]) {
+      # check if pbp$secs[p] > lineupSecs
+      if ( pbp$secs[p] > lineupSec ) {
+        #new lineup, new lineup sec
+        subCounter <- subCounter + 1
+        pbp[p,pbpLineupCols] <- subs[subCounter,subLineupCols]
+        #check for extra subs/set new next sub
+        while (subs$secs[subCounter] == lineupSec) {
+          pbp[p,pbpLineupCols] <- subs[subCounter,subLineupCols]
+          subCounter <- subCounter + 1
+          if (dim(subs)[1] < (subCounter + 1)) {
+            lineupSec <- max(pbp$secs) + 1
+          } else {
+            lineupSec <- subs$secs[subCounter + 1]
+          }
+        }
+      } else {
+        #same old lineup
+        pbp[p,pbpLineupCols] <- subs[subCounter,subLineupCols]
+      }
+    }
+    #all the shots:
+    pbpShots <- pbp[sort(c(grep(x = pbp$playText, pattern = " shot"),
+                           grep(x = pbp$playText, pattern = " layup"),
+                           grep(x = pbp$playText, pattern = " dunk"))),]
+    
+    ##merge by secs, can't have 2 shots at once (right)
+    pbpShots <- pbpShots[order(pbpShots$secs),]
+    shots <- shots[order(shots$secs),]
+    
+    shotsPBP <- merge(shots,pbpShots, by = c("secs","gameClock","gameNum","half"))
+    
+    #add players to DB
+    shotDB <- rbind.data.frame(shotDB,shotsPBP)
+    gameDB <- rbind.data.frame(gameDB,summ)
+    playerDB <- unique(rbind.data.frame(playerDB,players))
+    saveRDS(shotDB, paste0(gitDir,"shotDatabase.RDS"))
+    saveRDS(gameDB, paste0(gitDir,"gameDatabase.RDS"))
+    saveRDS(playerDB, paste0(gitDir,"playerDatabase.RDS"))
+  }
 }
+
+  
