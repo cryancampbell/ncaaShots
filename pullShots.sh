@@ -34,6 +34,13 @@ grep Substitution tmp.html | sed 's/<tr pbpid="." class="shsRow1Row shsPBPRow">/
 			 | sed 's/<tr class="shsColTtlRow shsMorePBPRow mvc_pbpHeader"><td>H<.td><td>Time<.td><td>Team<.td><td>Event<.td>.*<.tr>//g' \
 			 | sed 's/ .*<td class="shsNamD"> .*1st .*<.td> .*<td class="shsTotD">/1st;/g' \
 			 | sed 's/ .*<td class="shsNamD"> .*2nd .*<.td> .*<td class="shsTotD">/2nd;/g' \
+			 | sed 's/ .*<td class="shsNamD"> .* OT .*<.td> .*<td class="shsTotD">/1OT;/g' \
+			 | sed 's/ .*<td class="shsNamD"> .*2OT .*<.td> .*<td class="shsTotD">/2OT;/g' \
+			 | sed 's/ .*<td class="shsNamD"> .*3OT .*<.td> .*<td class="shsTotD">/3OT;/g' \
+			 | sed 's/ .*<td class="shsNamD"> .*4OT .*<.td> .*<td class="shsTotD">/4OT;/g' \
+			 | sed 's/ .*<td class="shsNamD"> .*5OT .*<.td> .*<td class="shsTotD">/5OT;/g' \
+			 | sed 's/ .*<td class="shsNamD"> .*6OT .*<.td> .*<td class="shsTotD">/6OT;/g' \
+			 | sed 's/ .*<td class="shsNamD"> .*7OT .*<.td> .*<td class="shsTotD">/7OT;/g' \
 			 | sed 's/<.td>/;/g' | sed 's/<td class="shsNamD">/;/g' \
 			 | sed 's/<.td><.tr>//g' | sed 's/&nbsp;//g' | sed 's/<strong>//g' | sed 's/<.strong>//g' | grep -v "PlayByPlayTable" > pbp.ssv
 
@@ -49,6 +56,7 @@ rm pbpWsectime.csv
 for P in `seq 1 $PBPLINES`; do
 	PLAY=`head -n$P pbp.csv | tail -n1`
 	HALF=`echo $PLAY | cut -d, -f1 | cut -c1`
+	OVERTIME=`echo $PLAY | cut -d, -f1 | cut -c2-3`
 	TIME=`echo $PLAY | cut -d, -f2`
 	MIN=`echo $TIME | cut -d: -f1`
 	SEC=`echo $TIME | cut -d: -f2`
@@ -60,10 +68,17 @@ for P in `seq 1 $PBPLINES`; do
 
 	MININ=$((`echo $((19 - MIN))` * 60))
 	SECIN=$((60 - SEC))
-	
+
 	HALFADJ=$((`echo $((HALF - 1))` * 1200))
 
 	SECTIME=$((MININ + SECIN + HALFADJ))
+
+	if [ "$OVERTIME" = "OT" ]; then
+		SECTIME=$((MININ + SECIN + 1200))
+		OTTIME=$((300 * HALF))
+		OTSECTIME=$((SECTIME + OTTIME))
+		SECTIME=$OTSECTIME
+	fi
 
 	echo $GAMENUM,$SECTIME,$PLAY >> pbpWsectime.csv
 done
@@ -99,6 +114,7 @@ echo $GAMENUM,0,1st,20:00,,,,Tip-off. > subsWTip.csv
 grep ,,,Substitution: pbpWsectime.csv | sort -n | grep ,1st, >> subsWTip.csv
 echo $GAMENUM,0,2nd,20:00,,,,Tip-off. >> subsWTip.csv
 grep ,,,Substitution: pbpWsectime.csv | sort -n | grep ,2nd, >> subsWTip.csv
+grep ,,,Substitution: pbpWsectime.csv | sort -n | grep OT, >> subsWTip.csv
 
 SUBCOUNT=`wc -l subsWTip.csv | sed 's/ subsWTip.csv//g' | sed 's/ //g'`
 
@@ -110,7 +126,7 @@ for S in `seq 1 $SUBCOUNT`; do
 		ONTHEFLOOR=`echo $A1,$A2,$A3,$A4,$A5,$H1,$H2,$H3,$H4,$H5`
 	else
 		PLAYERIN=`echo $SUB | sed 's/.*Substitution: //g' | sed 's/ in for .*//g'`
-		PLAYEROUT=`echo $SUB | sed 's/.* in for //g' | sed 's/\..*//g'`
+		PLAYEROUT=`echo $SUB | sed 's/.* in for //g' | sed 's/\.  .*//g'`
 		SUBAWAY=`echo $SUB | grep -c "$AWAYABBV"`
 		if [[ SUBAWAY -eq 1 ]]; then
 			NUMBERIN=`grep "$PLAYERIN" awayPlayers.csv | cut -d, -f1`
@@ -130,8 +146,8 @@ cat tmp.html | grep -B2 "mvc_sc_period=" \
 			 | tail -n +2 | sed '$!N;s/\n/,/' | sed 's,<span class=.gz_shot gz_,,g' \
 			 | sed 's/. team=./,/g' | sed 's/. mvc_sc_playerid=./,/g' \
 			 | sed 's/. title=./,/g' | sed 's/; display: block;.><.span>//g' \
-			 | sed 's/1st /1st,/g' | sed 's/2nd /2nd,/g' | sed 's/.. mvc_sc_period=./,half/g' \
-			 | sed 's/. style=.top: /,/g' | sed 's/%; left: /,/g' | sed 's/%//g' | sed 's/<.div>//g' > dehtml.csv
+			 | sed 's/1st /1st,/g' | sed 's/2nd /2nd,/g' | sed 's/OT /OT,/g' | sed 's/,OT,/,1OT,/g' \
+			 | sed 's/.. mvc_sc_period=./,half/g' | sed 's/. style=.top: /,/g' | sed 's/%; left: /,/g' | sed 's/%//g' | sed 's/<.div>//g' > dehtml.csv
 
 LINES=`wc -l dehtml.csv | sed 's, dehtml.csv,,g' | sed 's, ,,g'`
 HALFLINES=`echo $((LINES / 2))`
@@ -170,6 +186,7 @@ for L in `seq 1 $HALFLINES`; do
 	KEEPTEXT=`echo $SHOT | cut -d, -f1-6,8-10`
 
 	HALF=`echo $SHOT | cut -d, -f5 | cut -c1`
+	OVERTIME=`echo $SHOT | cut -d, -f5 | cut -c2-3`
 	TIME=`echo $SHOT | cut -d, -f6`
 	MIN=`echo $TIME | cut -d: -f1`
 	SEC=`echo $TIME | cut -d: -f2`
@@ -187,8 +204,31 @@ for L in `seq 1 $HALFLINES`; do
 
 	SECTIME=$((MININ + SECIN + HALFADJ))
 
+	if [ "$OVERTIME" = "OT" ]; then
+		SECTIME=$((MININ + SECIN + 1200))
+		OTTIME=$((300 * HALF))
+		OTSECTIME=$((SECTIME + OTTIME))
+		SECTIME=$OTSECTIME
+	fi
 
-	echo $GAMENUM,$SECTIME,$KEEPTEXT,$DIST,$ASSIST,$ASSISTER,$BLOCK,$BLOCKER,$THREEPT,$DUNK,$LAYUP,$HOOK,$JUMPER,$TEXT >> shots.csv
+
+	HOMESHOT=`echo $SHOT | grep -c ,home,`
+
+	if [[ HOMESHOT -eq 1 ]]; then
+		OPP=$AWAY
+		OPPABBV=$AWAYABBV
+		SHOTTEAM=$HOME
+	else
+		OPP=$HOME
+		OPPABBV=$HOMEABBV
+		SHOTTEAM=$AWAY
+	fi
+
+	echo $GAMENUM,$SECTIME,$KEEPTEXT,$DIST,$ASSIST,$ASSISTER,$BLOCK,$BLOCKER,$THREEPT,$DUNK,$LAYUP,$HOOK,$JUMPER,$SHOTTEAM,$OPP,$OPPABBV,$TEXT >> shots.csv
 done
+
+sed 's/,goal,/,make,/g' shots.csv > shotsNoGoal.csv
+
+mv shotsNoGoal.csv shots.csv
 
 rm awayPlayers.csv err.txt nonTextPBP.ssv pbp.ssv playerList.tmp tmp.html dehtml.csv homePlayers.csv pbp.csv subsWTip.csv textPBP.ssv uniqhtml.csv

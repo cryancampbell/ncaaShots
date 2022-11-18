@@ -7,6 +7,7 @@ date: '2022-11-09'
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(dplyr)
+library(ggplot2)
 
 gitDir <- "~/Documents/giterdone/ncaaShots/"
 dataDir <- paste0(gitDir,"data/")
@@ -21,10 +22,17 @@ playerDB <- readRDS(paste0(gitDir,"playerDatabase.RDS"))
 
 ```{r testing gzShots}
 
+shotDB <- data.frame()
+gameDB <- data.frame()
+playerDB <- data.frame()
 
 ### 2nd half tipoff -> 1200 Secs in subs object
 
-gameNum <- 2501636
+gameNum <- 2475381
+
+#gameNum <- 2479362
+#double ot
+#2479362
 
 #check if this is already in the DB
 if ( !gameNum %in% gameDB$gameNum) {
@@ -52,7 +60,9 @@ if ( !gameNum %in% gameDB$gameNum) {
   colnames(shots) <- c("gameNum","secs","outcome","team","playerID",
                      "playerName","half","gameClock","halfN","xPos","yPos",
                      "textDist","assist","assister","block","blocker",
-                     "three","dunk","layup","hook","jumper","playText")
+                     "three","dunk","layup","hook","jumper",
+                     "shotTeam","oppTeam","oppAbbv",
+                     "playText")
   
   colnames(summ) <- c("gameNum","year","month","day","date",
                       "away","awayAbbv","awayScore",
@@ -100,31 +110,10 @@ if ( !gameNum %in% gameDB$gameNum) {
   pbpLineupCols <- which(colnames(pbp) %in% c("a1","a2","a3","a4","a5","h1","h2","h3","h4","h5"))
   subLineupCols <- which(colnames(subs) %in% c("a1","a2","a3","a4","a5","h1","h2","h3","h4","h5"))
   
-  subCounter <- 1
-  pbp[1,pbpLineupCols] <- subs[subCounter,subLineupCols]
-  lineupSec <- subs$secs[subCounter + 1]
-  
-  for (p in 2:dim(pbp)[1]) {
-    # check if pbp$secs[p] > lineupSecs
-    if ( pbp$secs[p] > lineupSec ) {
-      #new lineup, new lineup sec
-      subCounter <- subCounter + 1
-      pbp[p,pbpLineupCols] <- subs[subCounter,subLineupCols]
-      #check for extra subs/set new next sub
-      while ( subs$secs[subCounter] == lineupSec ) {
-        pbp[p,pbpLineupCols] <- subs[subCounter,subLineupCols]
-        subCounter <- subCounter + 1
-        if (dim(subs)[1] < (subCounter + 1)) {
-          lineupSec <- max(pbp$secs) + 1
-          } else {
-            lineupSec <- subs$secs[subCounter + 1]
-          }
-        }
-      } else {
-      #same old lineup
-      pbp[p,pbpLineupCols] <- subs[subCounter,subLineupCols]
-      }
+  for (s in 1:dim(subs)[1]) {
+    pbp[pbp$secs >= subs$secs[s],12:21] <- subs[s,9:18]
   }
+  
   #all the shots:
   pbpShots <- pbp[sort(c(grep(x = pbp$playText, pattern = " shot"),
                          grep(x = pbp$playText, pattern = " layup"),
@@ -136,7 +125,78 @@ if ( !gameNum %in% gameDB$gameNum) {
   
   shotsPBP <- merge(shots,pbpShots, by = c("secs","gameClock","gameNum","half"))
   
-  #add players to DB
+  ### rotate shots
+  shotMatrix <- as.matrix(shotsPBP[,which(colnames(shotsPBP) %in% c("xPos","yPos"))])
+
+  #move the numbers to positive space
+  shotMatrix[,1] <- shotMatrix[,1] + 5
+  
+  #rotate
+  rotShotMatrix <- 100 + (shotMatrix %*% matrix(c(-1,0,0,-1), ncol = 2, nrow = 2))
+  
+  #make the court 100x50
+  rotShotMatrix[,1] <- .5 * rotShotMatrix[,1]
+  
+  shotsPBP$xPosRot <- rotShotMatrix[,1]
+  shotsPBP$yPosRot <- rotShotMatrix[,2]
+  
+  shotsPBP$xFinal <- ifelse(shotsPBP$team.x == "away", .5 * (shotsPBP$xPos + 5), shotsPBP$xPosRot) - 25
+  shotsPBP$ysemiFinal <- .94 * ifelse(shotsPBP$team.x == "away", shotsPBP$yPos, shotsPBP$yPosRot)
+  shotsPBP$yFinal <- ifelse(shotsPBP$team.x == "away", shotsPBP$ysemiFinal + 1, shotsPBP$ysemiFinal - 2)
+  
+  shotsPBP$baseline <- shotsPBP$xFinal + 25
+  shotsPBP$depth <- shotsPBP$yFinal
+  
+  #no heaves
+  shotsPBP <- subset(shotsPBP, yFinal <= 48)
+  hoop <- c(0,4.75)
+  shotsPBP$calcDist <- round(sqrt((shotsPBP$xFinal - hoop[1])^2 + (shotsPBP$yFinal - hoop[2])^2), digits = 1)
+  
+  #remove extra columns
+  shotsPBP <- shotsPBP[,which(!colnames(shotsPBP) %in% c("yPosRot","xPosRot","ysemiFinal","xFinal","yFinal"))]
+  
+  #extras
+  shotsPBP$FGtype <- ifelse(shotsPBP$three == 1,3,2)
+  shotsPBP$points <- ifelse(shotsPBP$outcome == "make", shotsPBP$FGtype, 0)
+  
+  #add shotLocation (shotLoc)
+  #swapping for 0-5,5-10,10-15,15-3pt
+  #matches NBA site
+  #if the scorer called it a 3 it is a 3
+  #otherwise, if it is within 5' mark it 0-5ft
+  shotsPBP$shotLoc <- ifelse(shotsPBP$three == 1, "Three",
+                             ifelse(shotsPBP$calcDist <= 5, "0-5ft",
+                                    ifelse(shotsPBP$calcDist > 5 & shotsPBP$calcDist <= 10,"5-10ft","10-22ft")))
+  
+  #add shot angle, where 0 degrees is directly from the left baseline
+  shotsPBP$angle <- ifelse(shotsPBP$baseline >= 25, 
+                             180 + round(atan(-(shotsPBP$depth - hoop[2])/(shotsPBP$baseline - 25)) * 180/pi, digits = 1),
+                             round(atan(-(shotsPBP$depth - hoop[2])/(shotsPBP$baseline - 25)) * 180/pi, digits = 1))
+  
+  shotsPBP$angleGrp <- ifelse(shotsPBP$angle < 36, "Right",
+                                ifelse(shotsPBP$angle >= 36 & shotsPBP$angle < 72, "Right-Mid",
+                                       ifelse(shotsPBP$angle >= 72 & shotsPBP$angle <= 108, "Center",
+                                              ifelse(shotsPBP$angle > 108 & shotsPBP$angle <= 144, "Left-Mid","Left"))))
+  
+  shotsPBP$angleShort <- ifelse(shotsPBP$angle < 50, "Right",
+                                 ifelse(shotsPBP$angle >= 50 & shotsPBP$angle <= 130, "Center","Left"))
+  
+  shotsPBP$Location <- paste0(shotsPBP$shotLoc,"_",shotsPBP$angleGrp)
+  shotsPBP$LocShort <- paste0(shotsPBP$shotLoc,"_",shotsPBP$angleShort)
+  
+  #fix 3s so right and left are corners - 15 feet baseline max
+  shotsPBP$angleGrp[which(shotsPBP$three == 1 & shotsPBP$depth > 15 & shotsPBP$angleGrp == "Left")] <- "Left-Mid"
+  shotsPBP$angleGrp[which(shotsPBP$three == 1 & shotsPBP$depth > 15 & shotsPBP$angleGrp == "Right")] <- "Right-Mid"
+  
+  shotsPBP$Location <- paste0(shotsPBP$shotLoc,"_",shotsPBP$angleGrp)
+  
+  #final shot groups...
+  shotsPBP$shotQuadrant <- ifelse(shotsPBP$shotLoc == "0-5ft","AtRim",
+                                    ifelse(shotsPBP$shotLoc == "5-10ft",shotsPBP$LocShort,shotsPBP$Location))
+  
+  shotsPBP <- shotsPBP[,which(!colnames(shotsPBP) %in% c("angleShort","LocShort","angleGrp","Location"))]
+  
+  #add to DB
   shotDB <- rbind.data.frame(shotDB,shotsPBP)
   gameDB <- rbind.data.frame(gameDB,summ)
   playerDB <- unique(rbind.data.frame(playerDB,players))
@@ -145,15 +205,80 @@ if ( !gameNum %in% gameDB$gameNum) {
   saveRDS(gameDB, paste0(gitDir,"gameDatabase.RDS"))
   saveRDS(playerDB, paste0(gitDir,"playerDatabase.RDS"))
 }
-#add summary to DB
-#add shots to DB
 
 ```
+
 
 ```{r second game}
-gzShots(gameNum = 2501636,
-        shotDB = shotDB,
-        playerDB = playerDB,
-        gameDB = gameDB)
+
+for (g in c(2475383,2475382)) {
+  shotDB <- readRDS(paste0(gitDir,"shotDatabase.RDS"))
+  gameDB <- readRDS(paste0(gitDir,"gameDatabase.RDS"))
+  playerDB <- readRDS(paste0(gitDir,"playerDatabase.RDS"))
+  
+  gzShots(gameNum = g,
+          shotDB = shotDB,
+          playerDB = playerDB,
+          gameDB = gameDB)
+}
+
 ```
+
+```{r add a date}
+
+date()
+
+gameDate <- "20221116"
+
+getGames <- paste0("sh pullShots.sh ",gameDate)
+system(getGames)
+
+gameListwShots <- read.table("tmpFiles/gameListwShots.txt")
+
+
+for (g in gameListwShots) {
+  shotDB <- readRDS(paste0(gitDir,"shotDatabase.RDS"))
+  gameDB <- readRDS(paste0(gitDir,"gameDatabase.RDS"))
+  playerDB <- readRDS(paste0(gitDir,"playerDatabase.RDS"))
+  
+  gzShots(gameNum = g,
+          shotDB = shotDB,
+          playerDB = playerDB,
+          gameDB = gameDB)
+}
+
+#have to re-read in the files?
+```
+
+defensive impact
+```{r}
+p <- 1243722
+
+for (p in c(1243722,1243718,1133861,1138380,1185948,1405037)) {
+  #shots against Seth
+  sethIn <- shotDB$h1 == p | shotDB$h2 == p | shotDB$h3 == p | shotDB$h4 == p | shotDB$h5 == p
+  
+  sethShots <- shotDB[sethIn,]
+  nsethShots <- shotDB[!sethIn,]
+  
+  nsethShots <- nsethShots[nsethShots$team.y %in% c("CofC","G-Webb","UNCW"),]
+  sethShots <- sethShots[sethShots$team.y %in% c("CofC","G-Webb","UNCW"),]
+  
+  #1 - mean(nsethShots$outcome == "miss")
+  #1 - mean(sethShots$outcome == "miss")
+  
+  #only 2s
+  nseth2Shots <- subset(nsethShots, three == 0)
+  seth2Shots <- subset(sethShots, three == 0)
+  
+  print(subset(playerDB, playerID == p)$playerName)
+  print((1 - mean(nseth2Shots$outcome == "miss")) - (1 - mean(seth2Shots$outcome == "miss")))
+  print(dim(nseth2Shots)[1])
+  print(1 - mean(nseth2Shots$outcome == "miss"))
+  print(dim(seth2Shots)[1])
+  print(1 - mean(seth2Shots$outcome == "miss"))
+}
+```
+
+
 
