@@ -164,6 +164,13 @@ gzShots <- function(gameNum,
     
     shotsPBP <- shotsPBP[,which(!colnames(shotsPBP) %in% c("angleShort","LocShort","angleGrp","Location"))]
     
+    #force shots onto the court
+    shotsPBP$baseline <- ifelse(shotsPBP$baseline < 1, 1,
+                                ifelse(shotsPBP$baseline > 49, 49, shotsPBP$baseline))
+    #take half-distances out
+    shotsPBP$baseline <- ifelse(shotsPBP$baseline < 25, floor(shotsPBP$baseline), ceiling(shotsPBP$baseline))
+    shotsPBP$depth <- ceiling(shotsPBP$depth)
+    
     #add to DB
     shotDB <- rbind.data.frame(shotDB,shotsPBP)
     gameDB <- rbind.data.frame(gameDB,summ)

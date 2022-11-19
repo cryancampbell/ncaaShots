@@ -20,6 +20,15 @@ gameDB <- readRDS(paste0(gitDir,"gameDatabase.RDS"))
 playerDB <- readRDS(paste0(gitDir,"playerDatabase.RDS"))
 ```
 
+To-Do
+
+-read in all 2021-22 data
+-read in this season's data up to current date
+-write a loop to read in new games
+    -something like: assume we're complete to the last date, then check every day going forward
+
+
+
 ```{r testing gzShots}
 
 shotDB <- data.frame()
@@ -196,6 +205,13 @@ if ( !gameNum %in% gameDB$gameNum) {
   
   shotsPBP <- shotsPBP[,which(!colnames(shotsPBP) %in% c("angleShort","LocShort","angleGrp","Location"))]
   
+  #force shots onto the court
+  shotsPBP$baseline <- ifelse(shotsPBP$baseline < 1, 1,
+                              ifelse(shotsPBP$baseline > 49, 49, shotsPBP$baseline))
+  #take half-distances out
+  shotsPBP$baseline <- ifelse(shotsPBP$baseline < 25, floor(shotsPBP$baseline), ceiling(shotsPBP$baseline))
+  shotsPBP$depth <- ceiling(shotsPBP$depth)
+  
   #add to DB
   shotDB <- rbind.data.frame(shotDB,shotsPBP)
   gameDB <- rbind.data.frame(gameDB,summ)
@@ -206,10 +222,7 @@ if ( !gameNum %in% gameDB$gameNum) {
   saveRDS(playerDB, paste0(gitDir,"playerDatabase.RDS"))
 }
 
-```
-
-
-```{r second game}
+#second games
 
 for (g in c(2475383,2475382)) {
   shotDB <- readRDS(paste0(gitDir,"shotDatabase.RDS"))
@@ -222,21 +235,20 @@ for (g in c(2475383,2475382)) {
           gameDB = gameDB)
 }
 
-```
 
-```{r add a date}
+#whole day
 
 date()
 
 gameDate <- "20221116"
 
-getGames <- paste0("sh pullShots.sh ",gameDate)
+getGames <- paste0("sh getGames.sh ",gameDate)
 system(getGames)
 
 gameListwShots <- read.table("tmpFiles/gameListwShots.txt")
 
 
-for (g in gameListwShots) {
+for (g in gameListwShots$V1) {
   shotDB <- readRDS(paste0(gitDir,"shotDatabase.RDS"))
   gameDB <- readRDS(paste0(gitDir,"gameDatabase.RDS"))
   playerDB <- readRDS(paste0(gitDir,"playerDatabase.RDS"))
@@ -247,8 +259,57 @@ for (g in gameListwShots) {
           gameDB = gameDB)
 }
 
-#have to re-read in the files?
+
+#check
+shotDB <- readRDS(paste0(gitDir,"shotDatabase.RDS"))
+
+ggplot(data = shotDB,
+       aes(x = baseline,
+           y = depth,
+           col = shotQuadrant)) +
+  geom_jitter(alpha = .5, size = 3)
+
+sum(shotDB$baseline <= 0)
+sum(shotDB$baseline >= 50)
+
+ggplot(data = shotDB,
+       aes(x = baseline,
+           y = depth,
+           col = shotQuadrant)) +
+  geom_point(alpha = .5, size = 3.5, shape = 15)
+
 ```
+
+
+```{r all dates up to today}
+date()
+
+gameDate <- "20221116"
+
+for (gameDate in paste0("202211",sprintf("%02d",c(7:15,17)))) {
+  print(gameDate)
+
+  getGames <- paste0("sh getGames.sh ",gameDate)
+  system(getGames)
+  
+  gameList <- read.table("tmpFiles/gameList.txt")
+  
+  
+  for (g in gameList$V1) {
+    
+    shotDB <- readRDS(paste0(gitDir,"shotDatabase.RDS"))
+    gameDB <- readRDS(paste0(gitDir,"gameDatabase.RDS"))
+    playerDB <- readRDS(paste0(gitDir,"playerDatabase.RDS"))
+    
+    gzShots(gameNum = g,
+            shotDB = shotDB,
+            playerDB = playerDB,
+            gameDB = gameDB)
+  }
+}
+```
+
+
 
 defensive impact
 ```{r}
