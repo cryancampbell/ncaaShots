@@ -281,12 +281,11 @@ ggplot(data = shotDB,
 ```
 
 
-```{r all dates up to today}
-date()
-
+```{r 2023 season}
 gameDate <- "20221116"
 
 for (gameDate in paste0("202211",sprintf("%02d",c(7:15,17)))) {
+  date()
   print(gameDate)
 
   getGames <- paste0("sh getGames.sh ",gameDate)
@@ -296,15 +295,53 @@ for (gameDate in paste0("202211",sprintf("%02d",c(7:15,17)))) {
   
   
   for (g in gameList$V1) {
+    print(g)
+    if (! g %in% readRDS(paste0(gitDir,"gameDatabase.RDS"))$gameNum ) {
+      shotDB <- readRDS(paste0(gitDir,"shotDatabase.RDS"))
+      gameDB <- readRDS(paste0(gitDir,"gameDatabase.RDS"))
+      playerDB <- readRDS(paste0(gitDir,"playerDatabase.RDS"))
+      
+      gzShots(gameNum = g,
+              shotDB = shotDB,
+              playerDB = playerDB,
+              gameDB = gameDB)
+    }
+  }
+}
+```
+
+```{r dates up to yesterday}
+gameDB <- readRDS(paste0(gitDir,"gameDatabase.RDS"))
+
+lastDate <- as.Date(tail(gameDB$date, n = 1),  "%b %d %Y")
+today <- Sys.Date()
+
+#days finished but not in DB
+needDates <- (lastDate + 1):(as.Date(today) - 1)
+needDates <- format(as.Date(needDates, origin = .Date(0)), "%Y%m%d")
+
+for (gameDate in needDates) {
+  date()
+  print(gameDate)
+  
+  getGames <- paste0("sh getGames.sh ",gameDate)
+  system(getGames)
+  
+  gameList <- read.table("tmpFiles/gameList.txt")
+  
+  for (g in gameList$V1) {
+    print(g)
     
-    shotDB <- readRDS(paste0(gitDir,"shotDatabase.RDS"))
-    gameDB <- readRDS(paste0(gitDir,"gameDatabase.RDS"))
-    playerDB <- readRDS(paste0(gitDir,"playerDatabase.RDS"))
-    
-    gzShots(gameNum = g,
-            shotDB = shotDB,
-            playerDB = playerDB,
-            gameDB = gameDB)
+    if (! g %in% readRDS(paste0(gitDir,"gameDatabase.RDS"))$gameNum ) {
+      shotDB <- readRDS(paste0(gitDir,"shotDatabase.RDS"))
+      gameDB <- readRDS(paste0(gitDir,"gameDatabase.RDS"))
+      playerDB <- readRDS(paste0(gitDir,"playerDatabase.RDS"))
+      
+      gzShots(gameNum = g,
+              shotDB = shotDB,
+              playerDB = playerDB,
+              gameDB = gameDB)
+    }
   }
 }
 ```

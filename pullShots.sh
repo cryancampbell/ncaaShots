@@ -53,7 +53,7 @@ if [[ SHOTNUM -gt 20 ]]; then
 		cat pbp.ssv | cut -d";" -f1,2,4,8,10,11 | sed 's/<.tr>//g' | sed 's/ //g' > nonTextPBP.ssv
 		cat pbp.ssv | cut -d";" -f6 > textPBP.ssv
 
-		paste nonTextPBP.ssv textPBP.ssv | sed 's/	                 //g' | sed 's/;/,/g' > pbp.csv
+		paste nonTextPBP.ssv textPBP.ssv | sed 's/	                 //g' | sed 's/,//g' | sed 's/;/,/g' > pbp.csv
 
 
 		PBPLINES=`wc -l pbp.csv | sed 's, pbp.csv,,g' | sed 's, ,,g'`
@@ -95,12 +95,12 @@ if [[ SHOTNUM -gt 20 ]]; then
 
 
 		head -n$((AWAYROWS - 1)) playerList.tmp | sed 's/ currentBoxTeamId, event);">                                          //g' \
-					| sed 's/                                      ;//g' \
+					| sed 's/                                      ;//g' | sed 's/, Jr./ Jr./g' \
 					| sed 's/;(//g' | sed 's/$/,'"$AWAY"','"$AWAYABBV"'/g' > awayPlayers.csv
 
 		tail -n$((HOMEROWS - AWAYROWS)) playerList.tmp | head -n $((HOMEROWS - AWAYROWS - 1)) \
 					| sed 's/ currentBoxTeamId, event);">                                          //g' \
-					| sed 's/                                      ;//g' \
+					| sed 's/                                      ;//g' | sed 's/, Jr./ Jr./g' \
 					| sed 's/;(//g' | sed 's/$/,'"$HOME"','"$HOMEABBV"'/g' > homePlayers.csv
 
 		cat awayPlayers.csv homePlayers.csv > players.csv
@@ -240,6 +240,6 @@ if [[ SHOTNUM -gt 20 ]]; then
 		rm awayPlayers.csv err.txt nonTextPBP.ssv pbp.ssv playerList.tmp tmp.html dehtml.csv homePlayers.csv pbp.csv subsWTip.csv textPBP.ssv uniqhtml.csv
 
 	fi
-	
+
 fi
 
