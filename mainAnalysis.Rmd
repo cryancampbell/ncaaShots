@@ -21,255 +21,13 @@ playerDB <- readRDS(paste0(gitDir,"playerDatabase.RDS"))
 ```
 
 To-Do
+-FLIP home SHOTS ALONG BASELINE
+baseline = ( -1 * (baseline - 25) ) + 25
 
 -read in all 2021-22 data
--read in this season's data up to current date
--write a loop to read in new games
-    -something like: assume we're complete to the last date, then check every day going forward
+-get team logos into a dataframe
 
 
-
-```{r testing gzShots}
-
-shotDB <- data.frame()
-gameDB <- data.frame()
-playerDB <- data.frame()
-
-### 2nd half tipoff -> 1200 Secs in subs object
-
-gameNum <- 2475381
-
-#gameNum <- 2479362
-#double ot
-#2479362
-
-#check if this is already in the DB
-if ( !gameNum %in% gameDB$gameNum) {
-
-  #if not, run pullShots.sh
-  shotCmd <- paste0("sh pullShots.sh ",gameNum)
-  system(shotCmd)
-  
-  pbp <- read.csv(paste0(gitDir,"tmpFiles/pbpWsectime.csv"), header = F, dec = ".", sep = ",")
-  players <- read.csv(paste0(gitDir,"tmpFiles/players.csv"), header = F, dec = ".", sep = ",")
-  shots <- read.csv(paste0(gitDir,"tmpFiles/shots.csv"), header = F, dec = ".", sep = ",")
-  subs <- read.csv(paste0(gitDir,"tmpFiles/subLineups.csv"), header = F, dec = ".", sep = ",")
-  summ <- read.csv(paste0(gitDir,"tmpFiles/summary.csv"), header = F, dec = ".", sep = ",")
-  
-  #combine shots/subs/pbp (for shot clock)
-  colnames(pbp) <- c("gameNum","secs","half","gameClock","team",
-                     "awayScore","homeScore","playText")
-  pbp <- pbp[order(-as.numeric(rownames(pbp))),]
-  
-  colnames(subs) <- c("gameNum","secs","half","gameClock","team",
-                     "awayScore","homeScore","playText",
-                     "a1","a2","a3","a4","a5",
-                     "h1","h2","h3","h4","h5")
-  
-  colnames(shots) <- c("gameNum","secs","outcome","team","playerID",
-                     "playerName","half","gameClock","halfN","xPos","yPos",
-                     "textDist","assist","assister","block","blocker",
-                     "three","dunk","layup","hook","jumper",
-                     "shotTeam","oppTeam","oppAbbv",
-                     "playText")
-  
-  colnames(summ) <- c("gameNum","year","month","day","date",
-                      "away","awayAbbv","awayScore",
-                      "home","homeAbbv","homeScore")
-  
-  colnames(players) <- c("playerID","playerName","team","teamAbbv")
-  
-  pbp$fullReset <- FALSE
-  pbp$shortReset <- FALSE
-  
-  #full resets
-  pbp$fullReset[grep(pattern = " makes ", x = pbp$playText, ignore.case = T)] <- TRUE
-  pbp$fullReset[grep(pattern = " misses ", x = pbp$playText, ignore.case = T)] <- TRUE
-  pbp$fullReset[grep(pattern = "turnover", x = pbp$playText, ignore.case = T)] <- TRUE
-  pbp$fullReset[grep(pattern = "defensive rebound", x = pbp$playText, ignore.case = T)] <- TRUE
-  pbp$fullReset[grep(pattern = "offensive foul", x = pbp$playText, ignore.case = T)] <- TRUE
-  pbp$fullReset[grep(pattern = "Start of the ", x = pbp$playText, ignore.case = T)] <- TRUE
-  pbp$fullReset[grep(pattern = " steals ", x = pbp$playText, ignore.case = T)] <- TRUE
-  pbp$fullReset[grep(pattern = "Personal foul committed ", x = pbp$playText, ignore.case = T)] <- TRUE
-  
-  #short resets
-  pbp$shortReset[grep(pattern = "turnover", x = pbp$playText, ignore.case = T)] <- TRUE
-  pbp$shortReset[grep(pattern = "offensive rebound", x = pbp$playText, ignore.case = T)] <- TRUE
-  pbp$shortReset[grep(pattern = "Start of the ", x = pbp$playText, ignore.case = T)] <- TRUE
-  
-  pbp$shotClock <- 30
-  
-  for (p in 1:dim(pbp)[1]) {
-    #not a half start
-    if (!grepl(pattern = "Start of the ", x = pbp$playText[p])) {
-      clockTime <- pbp$secs[p]
-      lastFullReset <- tail(subset(pbp, secs < clockTime & fullReset)$secs, n = 1)
-      lastShortReset <- tail(subset(pbp, secs < clockTime & shortReset)$secs, n = 1)
-      if (lastShortReset > lastFullReset) {
-        pbp$shotClock[p] <- 21 - (clockTime - lastShortReset)
-      } else {
-        pbp$shotClock[p] <- 31 - (clockTime - lastFullReset)
-      }
-    }
-  }
-  
-  pbp$a1 <- ""; pbp$a2 <- ""; pbp$a3 <- ""; pbp$a4 <- ""; pbp$a5 <- ""
-  pbp$h1 <- ""; pbp$h2 <- ""; pbp$h3 <- ""; pbp$h4 <- ""; pbp$h5 <- ""
-  
-  pbpLineupCols <- which(colnames(pbp) %in% c("a1","a2","a3","a4","a5","h1","h2","h3","h4","h5"))
-  subLineupCols <- which(colnames(subs) %in% c("a1","a2","a3","a4","a5","h1","h2","h3","h4","h5"))
-  
-  for (s in 1:dim(subs)[1]) {
-    pbp[pbp$secs >= subs$secs[s],12:21] <- subs[s,9:18]
-  }
-  
-  #all the shots:
-  pbpShots <- pbp[sort(c(grep(x = pbp$playText, pattern = " shot"),
-                         grep(x = pbp$playText, pattern = " layup"),
-                         grep(x = pbp$playText, pattern = " dunk"))),]
-  
-  ##merge by secs, can't have 2 shots at once (right)
-  pbpShots <- pbpShots[order(pbpShots$secs),]
-  shots <- shots[order(shots$secs),]
-  
-  shotsPBP <- merge(shots,pbpShots, by = c("secs","gameClock","gameNum","half"))
-  
-  ### rotate shots
-  shotMatrix <- as.matrix(shotsPBP[,which(colnames(shotsPBP) %in% c("xPos","yPos"))])
-
-  #move the numbers to positive space
-  shotMatrix[,1] <- shotMatrix[,1] + 5
-  
-  #rotate
-  rotShotMatrix <- 100 + (shotMatrix %*% matrix(c(-1,0,0,-1), ncol = 2, nrow = 2))
-  
-  #make the court 100x50
-  rotShotMatrix[,1] <- .5 * rotShotMatrix[,1]
-  
-  shotsPBP$xPosRot <- rotShotMatrix[,1]
-  shotsPBP$yPosRot <- rotShotMatrix[,2]
-  
-  shotsPBP$xFinal <- ifelse(shotsPBP$team.x == "away", .5 * (shotsPBP$xPos + 5), shotsPBP$xPosRot) - 25
-  shotsPBP$ysemiFinal <- .94 * ifelse(shotsPBP$team.x == "away", shotsPBP$yPos, shotsPBP$yPosRot)
-  shotsPBP$yFinal <- ifelse(shotsPBP$team.x == "away", shotsPBP$ysemiFinal + 1, shotsPBP$ysemiFinal - 2)
-  
-  shotsPBP$baseline <- shotsPBP$xFinal + 25
-  shotsPBP$depth <- shotsPBP$yFinal
-  
-  #no heaves
-  shotsPBP <- subset(shotsPBP, yFinal <= 48)
-  hoop <- c(0,4.75)
-  shotsPBP$calcDist <- round(sqrt((shotsPBP$xFinal - hoop[1])^2 + (shotsPBP$yFinal - hoop[2])^2), digits = 1)
-  
-  #remove extra columns
-  shotsPBP <- shotsPBP[,which(!colnames(shotsPBP) %in% c("yPosRot","xPosRot","ysemiFinal","xFinal","yFinal"))]
-  
-  #extras
-  shotsPBP$FGtype <- ifelse(shotsPBP$three == 1,3,2)
-  shotsPBP$points <- ifelse(shotsPBP$outcome == "make", shotsPBP$FGtype, 0)
-  
-  #add shotLocation (shotLoc)
-  #swapping for 0-5,5-10,10-15,15-3pt
-  #matches NBA site
-  #if the scorer called it a 3 it is a 3
-  #otherwise, if it is within 5' mark it 0-5ft
-  shotsPBP$shotLoc <- ifelse(shotsPBP$three == 1, "Three",
-                             ifelse(shotsPBP$calcDist <= 5, "0-5ft",
-                                    ifelse(shotsPBP$calcDist > 5 & shotsPBP$calcDist <= 10,"5-10ft","10-22ft")))
-  
-  #add shot angle, where 0 degrees is directly from the left baseline
-  shotsPBP$angle <- ifelse(shotsPBP$baseline >= 25, 
-                             180 + round(atan(-(shotsPBP$depth - hoop[2])/(shotsPBP$baseline - 25)) * 180/pi, digits = 1),
-                             round(atan(-(shotsPBP$depth - hoop[2])/(shotsPBP$baseline - 25)) * 180/pi, digits = 1))
-  
-  shotsPBP$angleGrp <- ifelse(shotsPBP$angle < 36, "Right",
-                                ifelse(shotsPBP$angle >= 36 & shotsPBP$angle < 72, "Right-Mid",
-                                       ifelse(shotsPBP$angle >= 72 & shotsPBP$angle <= 108, "Center",
-                                              ifelse(shotsPBP$angle > 108 & shotsPBP$angle <= 144, "Left-Mid","Left"))))
-  
-  shotsPBP$angleShort <- ifelse(shotsPBP$angle < 50, "Right",
-                                 ifelse(shotsPBP$angle >= 50 & shotsPBP$angle <= 130, "Center","Left"))
-  
-  shotsPBP$Location <- paste0(shotsPBP$shotLoc,"_",shotsPBP$angleGrp)
-  shotsPBP$LocShort <- paste0(shotsPBP$shotLoc,"_",shotsPBP$angleShort)
-  
-  #fix 3s so right and left are corners - 15 feet baseline max
-  shotsPBP$angleGrp[which(shotsPBP$three == 1 & shotsPBP$depth > 15 & shotsPBP$angleGrp == "Left")] <- "Left-Mid"
-  shotsPBP$angleGrp[which(shotsPBP$three == 1 & shotsPBP$depth > 15 & shotsPBP$angleGrp == "Right")] <- "Right-Mid"
-  
-  shotsPBP$Location <- paste0(shotsPBP$shotLoc,"_",shotsPBP$angleGrp)
-  
-  #final shot groups...
-  shotsPBP$shotQuadrant <- ifelse(shotsPBP$shotLoc == "0-5ft","AtRim",
-                                    ifelse(shotsPBP$shotLoc == "5-10ft",shotsPBP$LocShort,shotsPBP$Location))
-  
-  shotsPBP <- shotsPBP[,which(!colnames(shotsPBP) %in% c("angleShort","LocShort","angleGrp","Location"))]
-  
-  #force shots onto the court
-  shotsPBP$baseline <- ifelse(shotsPBP$baseline < 1, 1,
-                              ifelse(shotsPBP$baseline > 49, 49, shotsPBP$baseline))
-  #take half-distances out
-  shotsPBP$baseline <- ifelse(shotsPBP$baseline < 25, floor(shotsPBP$baseline), ceiling(shotsPBP$baseline))
-  shotsPBP$depth <- ceiling(shotsPBP$depth)
-  
-  #add to DB
-  shotDB <- rbind.data.frame(shotDB,shotsPBP)
-  gameDB <- rbind.data.frame(gameDB,summ)
-  playerDB <- unique(rbind.data.frame(playerDB,players))
-  
-  saveRDS(shotDB, paste0(gitDir,"shotDatabase.RDS"))
-  saveRDS(gameDB, paste0(gitDir,"gameDatabase.RDS"))
-  saveRDS(playerDB, paste0(gitDir,"playerDatabase.RDS"))
-}
-
-#second games
-
-for (g in c(2475383,2475382)) {
-  shotDB <- readRDS(paste0(gitDir,"shotDatabase.RDS"))
-  gameDB <- readRDS(paste0(gitDir,"gameDatabase.RDS"))
-  playerDB <- readRDS(paste0(gitDir,"playerDatabase.RDS"))
-  
-  gzShots(gameNum = g,
-          shotDB = shotDB,
-          playerDB = playerDB,
-          gameDB = gameDB)
-}
-
-
-#whole day
-
-date()
-
-gameDate <- "20221116"
-
-getGames <- paste0("sh getGames.sh ",gameDate)
-system(getGames)
-
-gameListwShots <- read.table("tmpFiles/gameListwShots.txt")
-
-
-for (g in gameListwShots$V1) {
-  shotDB <- readRDS(paste0(gitDir,"shotDatabase.RDS"))
-  gameDB <- readRDS(paste0(gitDir,"gameDatabase.RDS"))
-  playerDB <- readRDS(paste0(gitDir,"playerDatabase.RDS"))
-  
-  gzShots(gameNum = g,
-          shotDB = shotDB,
-          playerDB = playerDB,
-          gameDB = gameDB)
-}
-
-
-#check
-shotDB <- readRDS(paste0(gitDir,"shotDatabase.RDS"))
-
-ggplot(data = shotDB,
-       aes(x = baseline,
-           y = depth,
-           col = shotQuadrant)) +
-  geom_point(alpha = .15, size = 4.5, shape = 15)
-
-```
 
 
 ```{r run daily}
@@ -282,6 +40,9 @@ today <- Sys.Date()
 needDates <- (lastDate + 1):(as.Date(today) - 1)
 needDates <- format(as.Date(needDates, origin = .Date(0)), "%Y%m%d")
 
+#remove today
+needDates <- needDates[which(needDates != format(as.Date(today), "%Y%m%d"))]
+
 for (gameDate in needDates) {
   date()
   print(gameDate)
@@ -292,7 +53,6 @@ for (gameDate in needDates) {
   gameList <- read.table("tmpFiles/gameList.txt")
   
   for (g in gameList$V1) {
-    print(g)
     
     if (! g %in% readRDS(paste0(gitDir,"gameDatabase.RDS"))$gameNum ) {
       shotDB <- readRDS(paste0(gitDir,"shotDatabase.RDS"))
@@ -308,8 +68,22 @@ for (gameDate in needDates) {
 }
 ```
 
+
+```{r check shots}
+shotDB <- readRDS(paste0(gitDir,"shotDatabase.RDS"))
+gameDB <- readRDS(paste0(gitDir,"gameDatabase.RDS"))
+playerDB <- readRDS(paste0(gitDir,"playerDatabase.RDS"))
+
+ggplot(data = shotDB,
+       aes(x = baseline,
+           y = depth,
+           col = shotQuadrant)) +
+  geom_point(alpha = .15, size = 3.25, shape = 15)
+
+```
+
 quadrant percents
-```{r}
+```{r add expected value}
 
 #percent by clock
 mean(subset(shotDB, shotClock <= 10)$outcome == "make")
@@ -336,22 +110,78 @@ for (sq in allSQ) {
 quadFGPer <- quadFGPer[order(quadFGPer$allSQ),]
 quadFGPer <- quadFGPer[c(9,7,6,8,2,3,1,5,4,11,12,10,14,13),]
 
+shotDB$expFGPer <- 0
+
 #add expected FG% by shot quadrant and time to each shot
+sq <- "AtRim"
+for (sq in allSQ) {
+  sqRow <- which(quadFGPer$allSQ == sq)
+  shotDB$expFGPer[which(shotDB$shotQuadrant == sq & shotDB$shotClock < 10)] <- quadFGPer$late[sqRow] / 100
+  shotDB$expFGPer[which(shotDB$shotQuadrant == sq & shotDB$shotClock <= 20 & shotDB$shotClock >= 10)] <- quadFGPer$mid[sqRow] / 100
+  shotDB$expFGPer[which(shotDB$shotQuadrant == sq & shotDB$shotClock > 20)] <- quadFGPer$early[sqRow] / 100
+}
 
 #add expected points to each shot attempt
-
-
-
-
-
+shotDB$expPts <- shotDB$FGtype * shotDB$expFGPer
+shotDB$actPts <- shotDB$points - shotDB$expPts
 
 allBxD <- unique(paste0(shotDB$baseline,"_",shotDB$depth))
 ```
 
+Table of Points Generated for a Team
+```{r}
+focalTeam <- "North Carolina"
+
+subset(playerDB, team == focalTeam)
+
+for (focalPlayer in subset(playerDB, team == focalTeam)$playerID) {
+  focalName <- subset(playerDB, playerID == focalPlayer)$playerName
+  #number of shots
+  nShots  <- dim(subset(shotDB, playerID == focalPlayer))[1]
+  #points v exp
+  ptsOverExp <- sum(subset(shotDB, playerID == focalPlayer)$actPts)
+  
+  print(paste0(focalName," | ",nShots," shots | ",
+               round(ptsOverExp, digits = 1)," pts | ",
+               round(ptsOverExp/nShots, digits = 2)," per shot"))
+}
+
+focalPlayer <- 1243718
+
+plotShots <- subset(shotDB, playerID == 1243718)
+
+ggplot(data = plotShots,
+       aes(x = baseline,
+           y = depth,
+           col = outcome)) +
+  geom_point(alpha = .75,size = 3) + 
+  xlim(c(0,50)) + ylim(c(0,40))
+
+sum(subset(shotDB, playerID == focalPlayer & FGtype == 2)$actPts) / dim(subset(shotDB, playerID == focalPlayer & FGtype == 2))[1]
+sum(subset(shotDB, playerID == focalPlayer & FGtype == 2)$actPts)
+sum(subset(shotDB, playerID == focalPlayer & FGtype == 3)$actPts) / dim(subset(shotDB, playerID == focalPlayer & FGtype == 3))[1]
+sum(subset(shotDB, playerID == focalPlayer & FGtype == 3)$actPts)
+
+focalPlayer <- 1138380
+plotShots <- subset(shotDB, playerID == focalPlayer)
+
+mean(subset(plotShots, shotQuadrant == "AtRim")$outcome == "make")
+
+ggplot(data = plotShots,
+       aes(x = baseline,
+           y = depth,
+           col = outcome, 
+           shape = as.character(FGtype))) +
+  geom_point(alpha = .75,size = 3) + 
+  xlim(c(0,50)) + ylim(c(0,40))
+
+```
+
+
 
 defensive impact
 ```{r}
-p <- 1243722
+p <- 1405037
 
 for (p in c(1243722,1243718,1133861,1138380,1185948,1405037)) {
   #shots against Seth
@@ -360,8 +190,8 @@ for (p in c(1243722,1243718,1133861,1138380,1185948,1405037)) {
   sethShots <- shotDB[sethIn,]
   nsethShots <- shotDB[!sethIn,]
   
-  nsethShots <- nsethShots[nsethShots$team.y %in% c("CofC","G-Webb","UNCW"),]
-  sethShots <- sethShots[sethShots$team.y %in% c("CofC","G-Webb","UNCW"),]
+  nsethShots <- nsethShots[which(nsethShots$oppAbbv == "UNC"),]
+  sethShots <- sethShots[which(sethShots$oppAbbv == "UNC"),]
   
   #1 - mean(nsethShots$outcome == "miss")
   #1 - mean(sethShots$outcome == "miss")
@@ -377,6 +207,25 @@ for (p in c(1243722,1243718,1133861,1138380,1185948,1405037)) {
   print(dim(seth2Shots)[1])
   print(1 - mean(seth2Shots$outcome == "miss"))
 }
+
+ggplot(data = sethShots,
+       aes(x = baseline,
+           y = depth,
+           col = outcome)) +
+  geom_point(alpha = .75, size = 3.25)
+
+ggplot(data = nsethShots,
+       aes(x = baseline,
+           y = depth,
+           col = outcome)) +
+  geom_point(alpha = .75, size = 3.25)
+
+mean(subset(nsethShots, shotQuadrant == "AtRim")$outcome == "make")
+mean(subset(sethShots, shotQuadrant == "AtRim")$outcome == "make")
+
+mean(subset(nsethShots, shotQuadrant != "AtRim")$outcome == "make")
+mean(subset(sethShots, shotQuadrant != "AtRim")$outcome == "make")
+
 ```
 
 

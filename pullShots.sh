@@ -126,7 +126,6 @@ if [[ SHOTNUM -gt 20 ]]; then
 
 		rm subLineups.csv
 		for S in `seq 1 $SUBCOUNT`; do
-			echo $S
 			SUB=`head -n$S subsWTip.csv | tail -n1`
 			TIPOFF=`echo $SUB | grep -c ,Tip-off.`
 			if [[ TIPOFF -eq 1 ]]; then
