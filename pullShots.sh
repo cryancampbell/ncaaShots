@@ -126,6 +126,7 @@ if [[ SHOTNUM -gt 20 ]]; then
 
 		rm subLineups.csv
 		for S in `seq 1 $SUBCOUNT`; do
+			echo $S
 			SUB=`head -n$S subsWTip.csv | tail -n1`
 			TIPOFF=`echo $SUB | grep -c ,Tip-off.`
 			if [[ TIPOFF -eq 1 ]]; then
@@ -152,7 +153,7 @@ if [[ SHOTNUM -gt 20 ]]; then
 					 | tail -n +2 | sed '$!N;s/\n/,/' | sed 's,<span class=.gz_shot gz_,,g' \
 					 | sed 's/. team=./,/g' | sed 's/. mvc_sc_playerid=./,/g' \
 					 | sed 's/. title=./,/g' | sed 's/; display: block;.><.span>//g' \
-					 | sed 's/1st /1st,/g' | sed 's/2nd /2nd,/g' | sed 's/OT /OT,/g' | sed 's/,OT,/,1OT,/g' \
+					 | sed 's/1st /1st,/g' | sed 's/2nd /2nd,/g' | sed 's/OT /OT,/g' | sed 's/,OT,/,1OT,/g' | sed 's/, Jr./ Jr./g' \
 					 | sed 's/.. mvc_sc_period=./,half/g' | sed 's/. style=.top: /,/g' | sed 's/%; left: /,/g' | sed 's/%//g' | sed 's/<.div>//g' > dehtml.csv
 
 		LINES=`wc -l dehtml.csv | sed 's, dehtml.csv,,g' | sed 's, ,,g'`

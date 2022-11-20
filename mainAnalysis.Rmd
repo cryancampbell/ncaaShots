@@ -267,16 +267,7 @@ ggplot(data = shotDB,
        aes(x = baseline,
            y = depth,
            col = shotQuadrant)) +
-  geom_jitter(alpha = .5, size = 3)
-
-sum(shotDB$baseline <= 0)
-sum(shotDB$baseline >= 50)
-
-ggplot(data = shotDB,
-       aes(x = baseline,
-           y = depth,
-           col = shotQuadrant)) +
-  geom_point(alpha = .5, size = 3.5, shape = 15)
+  geom_point(alpha = .5, size = 4.5, shape = 15)
 
 ```
 
