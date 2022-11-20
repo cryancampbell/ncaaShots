@@ -267,41 +267,12 @@ ggplot(data = shotDB,
        aes(x = baseline,
            y = depth,
            col = shotQuadrant)) +
-  geom_point(alpha = .5, size = 4.5, shape = 15)
+  geom_point(alpha = .15, size = 4.5, shape = 15)
 
 ```
 
 
-```{r 2023 season}
-gameDate <- "20221116"
-
-for (gameDate in paste0("202211",sprintf("%02d",c(7:15,17)))) {
-  date()
-  print(gameDate)
-
-  getGames <- paste0("sh getGames.sh ",gameDate)
-  system(getGames)
-  
-  gameList <- read.table("tmpFiles/gameList.txt")
-  
-  
-  for (g in gameList$V1) {
-    print(g)
-    if (! g %in% readRDS(paste0(gitDir,"gameDatabase.RDS"))$gameNum ) {
-      shotDB <- readRDS(paste0(gitDir,"shotDatabase.RDS"))
-      gameDB <- readRDS(paste0(gitDir,"gameDatabase.RDS"))
-      playerDB <- readRDS(paste0(gitDir,"playerDatabase.RDS"))
-      
-      gzShots(gameNum = g,
-              shotDB = shotDB,
-              playerDB = playerDB,
-              gameDB = gameDB)
-    }
-  }
-}
-```
-
-```{r dates up to yesterday}
+```{r run daily}
 gameDB <- readRDS(paste0(gitDir,"gameDatabase.RDS"))
 
 lastDate <- as.Date(tail(gameDB$date, n = 1),  "%b %d %Y")
@@ -337,6 +308,45 @@ for (gameDate in needDates) {
 }
 ```
 
+quadrant percents
+```{r}
+
+#percent by clock
+mean(subset(shotDB, shotClock <= 10)$outcome == "make")
+mean(subset(shotDB, shotClock > 10 & shotClock < 20)$outcome == "make")
+mean(subset(shotDB, shotClock >= 20)$outcome == "make")
+
+allSQ <- unique(shotDB$shotQuadrant)
+
+quadFGPer <- data.frame(allSQ)
+quadFGPer$all <- 0
+quadFGPer$early <- 0
+quadFGPer$mid <- 0
+quadFGPer$late <- 0
+
+for (sq in allSQ) {
+  sqRow <- which(quadFGPer$allSQ == sq)
+  
+  quadFGPer$all[sqRow] <- 100 * mean(subset(shotDB, shotQuadrant == sq)$outcome == "make")
+  quadFGPer$early[sqRow] <- 100 * mean(subset(shotDB, shotQuadrant == sq & shotClock > 20)$outcome == "make")
+  quadFGPer$mid[sqRow] <- 100 * mean(subset(shotDB, shotQuadrant == sq & shotClock <= 20 & shotClock >= 10)$outcome == "make")
+  quadFGPer$late[sqRow] <- 100 * mean(subset(shotDB, shotQuadrant == sq & shotClock < 10)$outcome == "make")
+}
+
+quadFGPer <- quadFGPer[order(quadFGPer$allSQ),]
+quadFGPer <- quadFGPer[c(9,7,6,8,2,3,1,5,4,11,12,10,14,13),]
+
+#add expected FG% by shot quadrant and time to each shot
+
+#add expected points to each shot attempt
+
+
+
+
+
+
+allBxD <- unique(paste0(shotDB$baseline,"_",shotDB$depth))
+```
 
 
 defensive impact
