@@ -116,6 +116,9 @@ gzShots <- function(gameNum,
       shotsPBP$yFinal <- ifelse(shotsPBP$team.x == "away", shotsPBP$ysemiFinal + 1, shotsPBP$ysemiFinal - 2)
       
       shotsPBP$baseline <- shotsPBP$xFinal + 25
+      #home shots are mirror-imaged, flip them
+      shotsPBP$baseline[which(shotsPBP$team.x == "home")] <- 25 + ( -1 * ( shotsPBP$baseline[which(shotsPBP$team.x == "home")] - 25 ))
+      
       shotsPBP$depth <- shotsPBP$yFinal
       
       #no heaves

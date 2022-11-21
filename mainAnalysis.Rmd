@@ -21,8 +21,13 @@ playerDB <- readRDS(paste0(gitDir,"playerDatabase.RDS"))
 ```
 
 To-Do
--FLIP home SHOTS ALONG BASELINE
-baseline = ( -1 * (baseline - 25) ) + 25
+-table of top shot value players
+-plot of shot value v. shots taken
+-shot chart fxn (ngames, ndates, % by quad)
+-find best defenders (impact on/off)
+-best overall on/off (defensive and offensive on/off)
+-good shooters good shots (after logos)
+
 
 -read in all 2021-22 data
 -get team logos into a dataframe
@@ -125,7 +130,7 @@ for (sq in allSQ) {
 shotDB$expPts <- shotDB$FGtype * shotDB$expFGPer
 shotDB$actPts <- shotDB$points - shotDB$expPts
 
-allBxD <- unique(paste0(shotDB$baseline,"_",shotDB$depth))
+#allBxD <- unique(paste0(shotDB$baseline,"_",shotDB$depth))
 ```
 
 Table of Points Generated for a Team
@@ -146,37 +151,33 @@ for (focalPlayer in subset(playerDB, team == focalTeam)$playerID) {
                round(ptsOverExp/nShots, digits = 2)," per shot"))
 }
 
-focalPlayer <- 1243718
-
-plotShots <- subset(shotDB, playerID == 1243718)
-
-ggplot(data = plotShots,
-       aes(x = baseline,
-           y = depth,
-           col = outcome)) +
-  geom_point(alpha = .75,size = 3) + 
-  xlim(c(0,50)) + ylim(c(0,40))
-
-sum(subset(shotDB, playerID == focalPlayer & FGtype == 2)$actPts) / dim(subset(shotDB, playerID == focalPlayer & FGtype == 2))[1]
-sum(subset(shotDB, playerID == focalPlayer & FGtype == 2)$actPts)
-sum(subset(shotDB, playerID == focalPlayer & FGtype == 3)$actPts) / dim(subset(shotDB, playerID == focalPlayer & FGtype == 3))[1]
-sum(subset(shotDB, playerID == focalPlayer & FGtype == 3)$actPts)
-
-focalPlayer <- 1138380
-plotShots <- subset(shotDB, playerID == focalPlayer)
-
-mean(subset(plotShots, shotQuadrant == "AtRim")$outcome == "make")
-
-ggplot(data = plotShots,
-       aes(x = baseline,
-           y = depth,
-           col = outcome, 
-           shape = as.character(FGtype))) +
-  geom_point(alpha = .75,size = 3) + 
-  xlim(c(0,50)) + ylim(c(0,40))
-
 ```
 
+Top Point Generated in NCAA
+```{r}
+shotMin <- 40
+ptsPerShot <- .25
+
+playerList <- names(table(shotDB$playerID)[table(shotDB$playerID) >= shotMin])
+
+for (focalPlayer in playerList) {
+  focalName <- subset(playerDB, playerID == focalPlayer)$playerName
+  playerTeam <- subset(playerDB, playerID == focalPlayer)$team[1]
+  #number of games
+  nGames <- length(unique(subset(shotDB, playerID == focalPlayer)$gameNum))
+  #number of shots
+  nShots  <- dim(subset(shotDB, playerID == focalPlayer))[1]
+  #points v exp
+  ptsOverExp <- sum(subset(shotDB, playerID == focalPlayer)$actPts)
+  
+  if (ptsOverExp / nShots > ptsPerShot) {
+    print(paste0(focalName," | ",playerTeam," | ",
+                 nShots," shots, ",round(nShots/nGames, digits = 1)," per game | ",
+                 round(ptsOverExp, digits = 1)," pts | ",
+                 round(ptsOverExp/nShots, digits = 2)," per shot"))
+  }
+}
+```
 
 
 defensive impact
@@ -229,4 +230,34 @@ mean(subset(sethShots, shotQuadrant != "AtRim")$outcome == "make")
 ```
 
 
+
+```{r UNC stuff}
+
+focalPlayer <- 1243718
+
+plotShots <- subset(shotDB, playerID == 1243718)
+
+ggplot(data = plotShots,
+       aes(x = baseline,
+           y = depth,
+           col = outcome)) +
+  geom_point(alpha = .75,size = 3) + 
+  xlim(c(0,50)) + ylim(c(0,40))
+
+sum(subset(shotDB, playerID == focalPlayer & FGtype == 2)$actPts) / dim(subset(shotDB, playerID == focalPlayer & FGtype == 2))[1]
+sum(subset(shotDB, playerID == focalPlayer & FGtype == 2)$actPts)
+sum(subset(shotDB, playerID == focalPlayer & FGtype == 3)$actPts) / dim(subset(shotDB, playerID == focalPlayer & FGtype == 3))[1]
+sum(subset(shotDB, playerID == focalPlayer & FGtype == 3)$actPts)
+
+focalPlayer <- 1243718
+plotShots <- subset(shotDB, playerID == focalPlayer)
+
+ggplot(data = plotShots,
+       aes(x = baseline,
+           y = depth,
+           col = outcome, 
+           shape = as.character(FGtype))) +
+  geom_point(alpha = .75,size = 3) + 
+  xlim(c(0,50)) + ylim(c(0,40))
+```
 
