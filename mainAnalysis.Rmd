@@ -8,6 +8,7 @@ date: '2022-11-09'
 knitr::opts_chunk$set(echo = TRUE)
 library(dplyr)
 library(ggplot2)
+library(gt)
 
 gitDir <- "~/Documents/giterdone/ncaaShots/"
 dataDir <- paste0(gitDir,"data/")
@@ -155,10 +156,21 @@ for (focalPlayer in subset(playerDB, team == focalTeam)$playerID) {
 
 Top Point Generated in NCAA
 ```{r}
-shotMin <- 40
-ptsPerShot <- .25
+
+tsPlayer <- vector()
+tsTeam <- vector()
+tsnShots <- vector()
+tsnGames <- vector()
+tsspg <- vector()
+tsptsAdded <- vector()
+tsptsPerShot <-  vector()
+
+shotMin <- 30
+ptsPerShot <- .1
 
 playerList <- names(table(shotDB$playerID)[table(shotDB$playerID) >= shotMin])
+
+focalPlayer <- playerList[14]
 
 for (focalPlayer in playerList) {
   focalName <- subset(playerDB, playerID == focalPlayer)$playerName
@@ -170,13 +182,85 @@ for (focalPlayer in playerList) {
   #points v exp
   ptsOverExp <- sum(subset(shotDB, playerID == focalPlayer)$actPts)
   
-  if (ptsOverExp / nShots > ptsPerShot) {
+  if ( ptsOverExp / nShots > ptsPerShot & nShots / nGames >= 10 ) {
+    tsPlayer <- c(tsPlayer,focalName)
+    tsTeam <- c(tsTeam,playerTeam)
+    tsnShots <- c(tsnShots,nShots)
+    tsnGames <- c(tsnGames,nGames)
+    tsspg <- c(tsspg,nShots / nGames)
+    tsptsAdded <- c(tsptsAdded,ptsOverExp)
+    tsptsPerShot <- c(tsptsPerShot,ptsOverExp / nShots)
+
     print(paste0(focalName," | ",playerTeam," | ",
                  nShots," shots, ",round(nShots/nGames, digits = 1)," per game | ",
-                 round(ptsOverExp, digits = 1)," pts | ",
+                 round(ptsOverExp, digits = 1)," pts | +",
                  round(ptsOverExp/nShots, digits = 2)," per shot"))
   }
 }
+
+topScorers <- cbind.data.frame(tsPlayer,tsTeam,tsnShots,tsnGames,tsspg,tsptsAdded,tsptsPerShot)
+colnames(topScorers) <- c("Player","Team","Shots","Games","Shots/Game","Pts Added","Pts/Shot")
+
+topScorers <- topScorers[order(topScorers$`Pts/Shot`, decreasing = T),]
+
+#sort and show top-10
+topScorers <- head(topScorers, n = 10)
+topScorers$`Shots/Game` <- round(topScorers$`Shots/Game`, digits = 1)
+topScorers$`Pts Added` <- round(topScorers$`Pts Added`, digits = 1)
+topScorers$`Pts/Shot` <- round(topScorers$`Pts/Shot`, digits = 3)
+
+### make a table
+gt_tbl <- gt(topScorers[,!colnames(topScorers) %in% "Shots"])
+
+gt_tbl <-
+  gt_tbl %>%
+    tab_header(
+      title = md("**Top Ten: Points Added Per Shot**"),
+      subtitle = paste0("Min Shots Charted = ",shotMin,"   |   Points Added Over NCAA Average")
+      )
+
+gt_tbl <- 
+  gt_tbl %>%
+  tab_source_note(
+    source_note = md(paste0("_Average value calc. from location and shot clock status of ",dim(shotDB)[1]," shots in the 2022-23 season_"))
+  )
+
+# Show the gt Table
+gt_tbl <- 
+  gt_tbl %>%
+  data_color(
+    columns = `Pts/Shot`,
+    colors = scales::col_numeric(
+      palette = c("white", "#C5050C"),
+      domain = c(0, 1)
+    )
+  )
+
+gt_tbl <- 
+  gt_tbl %>%
+  data_color(
+    columns = `Shots/Game`,
+    colors = scales::col_numeric(
+      palette = c("white", "#4B9CD3"),
+      domain = c(10, 15)
+    )
+  )
+
+gt_tbl <- 
+  gt_tbl %>%
+  cols_align(
+    align = "center",
+    columns = c(Games,`Shots/Game`,`Pts Added`,`Pts/Shot`)
+  )
+
+gt_tbl <- 
+  gt_tbl %>%
+  tab_options(heading.title.font.size = 30, column_labels.font.weight = 'bold')
+
+
+gt_tbl %>% gtsave(paste0(figDir,"TopTen_PtsPerShot_min",shotMin,"shots.html"))
+
+
 ```
 
 
