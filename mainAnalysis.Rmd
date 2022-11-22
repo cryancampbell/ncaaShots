@@ -21,8 +21,11 @@ gameDB <- readRDS(paste0(gitDir,"gameDatabase.RDS"))
 playerDB <- readRDS(paste0(gitDir,"playerDatabase.RDS"))
 ```
 
+Fixes
+-2497996 has NA in h1 (check for others, drop them, maybe purge at input)
+
+
 To-Do
--table of top shot value players
 -plot of shot value v. shots taken
 -shot chart fxn (ngames, ndates, % by quad)
 -find best defenders (impact on/off)
@@ -272,13 +275,16 @@ gt_tbl
 
 defensive impact
 ```{r}
-p <- 1405037
+p <- 1232015
 
 minShots <- 50
+minCourtTime <- .2
 
-for (p in c(1243722,1243718,1133861,1138380,1185948,1405037)) {
+for (p in playerDF$playerID) {
   playerName <- subset(playerDF, playerID == p)$playerName
   teamAbbv <- subset(playerDF, playerID == p)$teamAbbv
+  
+  ### THIS ONLY CHECKS FOR HOME TEAM... WHOOPS - FIRST DROP shotDF by TEAM/OPP then any player as below:
   
   #shots against Seth
   plyrIn <- shotDF$h1 == p | shotDF$h2 == p | shotDF$h3 == p | shotDF$h4 == p | shotDF$h5 == p
@@ -288,17 +294,25 @@ for (p in c(1243722,1243718,1133861,1138380,1185948,1405037)) {
   
   nplyrShots <- nplyrShots[which(nplyrShots$oppAbbv == teamAbbv),]
   plyrShots <- plyrShots[which(plyrShots$oppAbbv == teamAbbv),]
+
+  #needs to be on-off for 25/75%
+  percentTeamShots <- dim(plyrShots)[1] / (dim(plyrShots)[1] + dim(nplyrShots)[1])
   
-  if (dim(nplyrShots)[1] > minShots & dim(plyrShots)[1] > minShots) {
-    print(playerName)
+  if ( percentTeamShots > minCourtTime & (1 - percentTeamShots) < (1 - minCourtTime) ) {
+    
+    
     offCourt <- 1 - mean(nplyrShots$outcome == "miss")
     offCourtPts <- sum(nplyrShots$actPts) / dim(nplyrShots)[1]
     onCourt <- 1 - mean(plyrShots$outcome == "miss")
     onCourtPts <- sum(plyrShots$actPts) / dim(plyrShots)[1]
     benchDiff <- 100 * (offCourt - onCourt)
     benchDiffPts <- offCourtPts - onCourtPts
-    print(round(benchDiffPts, digits = 3))
-    print(round(benchDiff, digits = 1))
+  
+    
+    if ( benchDiff > 20) {
+      print(paste0(playerName," | ",round(benchDiffPts, digits = 3)," | ",round(benchDiff, digits = 1)," | ",
+                   dim(plyrShots)[1],"/",dim(nplyrShots)[1]," | ",teamAbbv))
+    }
   }
 }
 
