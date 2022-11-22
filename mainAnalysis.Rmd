@@ -72,15 +72,16 @@ for (gameDate in needDates) {
     }
   }
 }
+shotDF <- readRDS(paste0(gitDir,"shotDatabase.RDS"))
+gameDF <- readRDS(paste0(gitDir,"gameDatabase.RDS"))
+playerDF <- readRDS(paste0(gitDir,"playerDatabase.RDS"))
+
+rm(shotDB); rm(playerDB); rm(gameDB)
 ```
 
 
 ```{r check shots}
-shotDB <- readRDS(paste0(gitDir,"shotDatabase.RDS"))
-gameDB <- readRDS(paste0(gitDir,"gameDatabase.RDS"))
-playerDB <- readRDS(paste0(gitDir,"playerDatabase.RDS"))
-
-ggplot(data = shotDB,
+ggplot(data = shotDF,
        aes(x = baseline,
            y = depth,
            col = shotQuadrant)) +
@@ -92,11 +93,11 @@ quadrant percents
 ```{r add expected value}
 
 #percent by clock
-mean(subset(shotDB, shotClock <= 10)$outcome == "make")
-mean(subset(shotDB, shotClock > 10 & shotClock < 20)$outcome == "make")
-mean(subset(shotDB, shotClock >= 20)$outcome == "make")
+mean(subset(shotDF, shotClock <= 10)$outcome == "make")
+mean(subset(shotDF, shotClock > 10 & shotClock < 20)$outcome == "make")
+mean(subset(shotDF, shotClock >= 20)$outcome == "make")
 
-allSQ <- unique(shotDB$shotQuadrant)
+allSQ <- unique(shotDF$shotQuadrant)
 
 quadFGPer <- data.frame(allSQ)
 quadFGPer$all <- 0
@@ -107,45 +108,45 @@ quadFGPer$late <- 0
 for (sq in allSQ) {
   sqRow <- which(quadFGPer$allSQ == sq)
   
-  quadFGPer$all[sqRow] <- 100 * mean(subset(shotDB, shotQuadrant == sq)$outcome == "make")
-  quadFGPer$early[sqRow] <- 100 * mean(subset(shotDB, shotQuadrant == sq & shotClock > 20)$outcome == "make")
-  quadFGPer$mid[sqRow] <- 100 * mean(subset(shotDB, shotQuadrant == sq & shotClock <= 20 & shotClock >= 10)$outcome == "make")
-  quadFGPer$late[sqRow] <- 100 * mean(subset(shotDB, shotQuadrant == sq & shotClock < 10)$outcome == "make")
+  quadFGPer$all[sqRow] <- 100 * mean(subset(shotDF, shotQuadrant == sq)$outcome == "make")
+  quadFGPer$early[sqRow] <- 100 * mean(subset(shotDF, shotQuadrant == sq & shotClock > 20)$outcome == "make")
+  quadFGPer$mid[sqRow] <- 100 * mean(subset(shotDF, shotQuadrant == sq & shotClock <= 20 & shotClock >= 10)$outcome == "make")
+  quadFGPer$late[sqRow] <- 100 * mean(subset(shotDF, shotQuadrant == sq & shotClock < 10)$outcome == "make")
 }
 
 quadFGPer <- quadFGPer[order(quadFGPer$allSQ),]
 quadFGPer <- quadFGPer[c(9,7,6,8,2,3,1,5,4,11,12,10,14,13),]
 
-shotDB$expFGPer <- 0
+shotDF$expFGPer <- 0
 
 #add expected FG% by shot quadrant and time to each shot
 sq <- "AtRim"
 for (sq in allSQ) {
   sqRow <- which(quadFGPer$allSQ == sq)
-  shotDB$expFGPer[which(shotDB$shotQuadrant == sq & shotDB$shotClock < 10)] <- quadFGPer$late[sqRow] / 100
-  shotDB$expFGPer[which(shotDB$shotQuadrant == sq & shotDB$shotClock <= 20 & shotDB$shotClock >= 10)] <- quadFGPer$mid[sqRow] / 100
-  shotDB$expFGPer[which(shotDB$shotQuadrant == sq & shotDB$shotClock > 20)] <- quadFGPer$early[sqRow] / 100
+  shotDF$expFGPer[which(shotDF$shotQuadrant == sq & shotDF$shotClock < 10)] <- quadFGPer$late[sqRow] / 100
+  shotDF$expFGPer[which(shotDF$shotQuadrant == sq & shotDF$shotClock <= 20 & shotDF$shotClock >= 10)] <- quadFGPer$mid[sqRow] / 100
+  shotDF$expFGPer[which(shotDF$shotQuadrant == sq & shotDF$shotClock > 20)] <- quadFGPer$early[sqRow] / 100
 }
 
 #add expected points to each shot attempt
-shotDB$expPts <- shotDB$FGtype * shotDB$expFGPer
-shotDB$actPts <- shotDB$points - shotDB$expPts
+shotDF$expPts <- shotDF$FGtype * shotDF$expFGPer
+shotDF$actPts <- shotDF$points - shotDF$expPts
 
-#allBxD <- unique(paste0(shotDB$baseline,"_",shotDB$depth))
+#allBxD <- unique(paste0(shotDF$baseline,"_",shotDF$depth))
 ```
 
 Table of Points Generated for a Team
 ```{r}
 focalTeam <- "North Carolina"
 
-subset(playerDB, team == focalTeam)
+subset(playerDF, team == focalTeam)
 
-for (focalPlayer in subset(playerDB, team == focalTeam)$playerID) {
-  focalName <- subset(playerDB, playerID == focalPlayer)$playerName
+for (focalPlayer in subset(playerDF, team == focalTeam)$playerID) {
+  focalName <- subset(playerDF, playerID == focalPlayer)$playerName
   #number of shots
-  nShots  <- dim(subset(shotDB, playerID == focalPlayer))[1]
+  nShots  <- dim(subset(shotDF, playerID == focalPlayer))[1]
   #points v exp
-  ptsOverExp <- sum(subset(shotDB, playerID == focalPlayer)$actPts)
+  ptsOverExp <- sum(subset(shotDF, playerID == focalPlayer)$actPts)
   
   print(paste0(focalName," | ",nShots," shots | ",
                round(ptsOverExp, digits = 1)," pts | ",
@@ -165,24 +166,29 @@ tsspg <- vector()
 tsptsAdded <- vector()
 tsptsPerShot <-  vector()
 
-shotMin <- 30
-ptsPerShot <- .1
+ggplot() +
+  geom_histogram(aes(table(shotDF$playerID)), bins = 50)
 
-playerList <- names(table(shotDB$playerID)[table(shotDB$playerID) >= shotMin])
+#set shot min to top 20% of DB
+shotMin <- quantile(table(shotDF$playerID), probs = c(.8))
+ptsPerShot <- .1
+shotsPerGame <- 8
+
+playerList <- names(table(shotDF$playerID)[table(shotDF$playerID) >= shotMin])
 
 focalPlayer <- playerList[14]
 
 for (focalPlayer in playerList) {
-  focalName <- subset(playerDB, playerID == focalPlayer)$playerName
-  playerTeam <- subset(playerDB, playerID == focalPlayer)$team[1]
+  focalName <- subset(playerDF, playerID == focalPlayer)$playerName
+  playerTeam <- subset(playerDF, playerID == focalPlayer)$team[1]
   #number of games
-  nGames <- length(unique(subset(shotDB, playerID == focalPlayer)$gameNum))
+  nGames <- length(unique(subset(shotDF, playerID == focalPlayer)$gameNum))
   #number of shots
-  nShots  <- dim(subset(shotDB, playerID == focalPlayer))[1]
+  nShots  <- dim(subset(shotDF, playerID == focalPlayer))[1]
   #points v exp
-  ptsOverExp <- sum(subset(shotDB, playerID == focalPlayer)$actPts)
+  ptsOverExp <- sum(subset(shotDF, playerID == focalPlayer)$actPts)
   
-  if ( ptsOverExp / nShots > ptsPerShot & nShots / nGames >= 10 ) {
+  if ( ptsOverExp / nShots > ptsPerShot & nShots / nGames >= shotsPerGame ) {
     tsPlayer <- c(tsPlayer,focalName)
     tsTeam <- c(tsTeam,playerTeam)
     tsnShots <- c(tsnShots,nShots)
@@ -215,14 +221,14 @@ gt_tbl <- gt(topScorers[,!colnames(topScorers) %in% "Shots"])
 gt_tbl <-
   gt_tbl %>%
     tab_header(
-      title = md("**Top Ten: Points Added Per Shot**"),
+      title = md("**Maui Inv. Top-10: Points Added Per Shot**"),
       subtitle = paste0("Min Shots Charted = ",shotMin,"   |   Points Added Over NCAA Average")
       )
 
 gt_tbl <- 
   gt_tbl %>%
   tab_source_note(
-    source_note = md(paste0("_Average value calc. from location and shot clock status of ",dim(shotDB)[1]," shots in the 2022-23 season_"))
+    source_note = md(paste0("_Average value calc. from location and shot clock status of ",dim(shotDF)[1]," shots in the 2022-23 season_"))
   )
 
 # Show the gt Table
@@ -232,7 +238,7 @@ gt_tbl <-
     columns = `Pts/Shot`,
     colors = scales::col_numeric(
       palette = c("white", "#C5050C"),
-      domain = c(0, 1)
+      domain = c(0, 1.66)
     )
   )
 
@@ -242,7 +248,7 @@ gt_tbl <-
     columns = `Shots/Game`,
     colors = scales::col_numeric(
       palette = c("white", "#4B9CD3"),
-      domain = c(10, 15)
+      domain = c(5, 15)
     )
   )
 
@@ -260,7 +266,7 @@ gt_tbl <-
 
 gt_tbl %>% gtsave(paste0(figDir,"TopTen_PtsPerShot_min",shotMin,"shots.html"))
 
-
+gt_tbl
 ```
 
 
@@ -268,48 +274,46 @@ defensive impact
 ```{r}
 p <- 1405037
 
+minShots <- 50
+
 for (p in c(1243722,1243718,1133861,1138380,1185948,1405037)) {
+  playerName <- subset(playerDF, playerID == p)$playerName
+  teamAbbv <- subset(playerDF, playerID == p)$teamAbbv
+  
   #shots against Seth
-  sethIn <- shotDB$h1 == p | shotDB$h2 == p | shotDB$h3 == p | shotDB$h4 == p | shotDB$h5 == p
+  plyrIn <- shotDF$h1 == p | shotDF$h2 == p | shotDF$h3 == p | shotDF$h4 == p | shotDF$h5 == p
   
-  sethShots <- shotDB[sethIn,]
-  nsethShots <- shotDB[!sethIn,]
+  plyrShots <- shotDF[plyrIn,]
+  nplyrShots <- shotDF[!plyrIn,]
   
-  nsethShots <- nsethShots[which(nsethShots$oppAbbv == "UNC"),]
-  sethShots <- sethShots[which(sethShots$oppAbbv == "UNC"),]
+  nplyrShots <- nplyrShots[which(nplyrShots$oppAbbv == teamAbbv),]
+  plyrShots <- plyrShots[which(plyrShots$oppAbbv == teamAbbv),]
   
-  #1 - mean(nsethShots$outcome == "miss")
-  #1 - mean(sethShots$outcome == "miss")
-  
-  #only 2s
-  nseth2Shots <- subset(nsethShots, three == 0)
-  seth2Shots <- subset(sethShots, three == 0)
-  
-  print(subset(playerDB, playerID == p)$playerName)
-  print((1 - mean(nseth2Shots$outcome == "miss")) - (1 - mean(seth2Shots$outcome == "miss")))
-  print(dim(nseth2Shots)[1])
-  print(1 - mean(nseth2Shots$outcome == "miss"))
-  print(dim(seth2Shots)[1])
-  print(1 - mean(seth2Shots$outcome == "miss"))
+  if (dim(nplyrShots)[1] > minShots & dim(plyrShots)[1] > minShots) {
+    print(playerName)
+    offCourt <- 1 - mean(nplyrShots$outcome == "miss")
+    offCourtPts <- sum(nplyrShots$actPts) / dim(nplyrShots)[1]
+    onCourt <- 1 - mean(plyrShots$outcome == "miss")
+    onCourtPts <- sum(plyrShots$actPts) / dim(plyrShots)[1]
+    benchDiff <- 100 * (offCourt - onCourt)
+    benchDiffPts <- offCourtPts - onCourtPts
+    print(round(benchDiffPts, digits = 3))
+    print(round(benchDiff, digits = 1))
+  }
 }
 
-ggplot(data = sethShots,
+ggplot(data = plyrShots,
        aes(x = baseline,
            y = depth,
            col = outcome)) +
   geom_point(alpha = .75, size = 3.25)
 
-ggplot(data = nsethShots,
+ggplot(data = nplyrShots,
        aes(x = baseline,
            y = depth,
            col = outcome)) +
   geom_point(alpha = .75, size = 3.25)
 
-mean(subset(nsethShots, shotQuadrant == "AtRim")$outcome == "make")
-mean(subset(sethShots, shotQuadrant == "AtRim")$outcome == "make")
-
-mean(subset(nsethShots, shotQuadrant != "AtRim")$outcome == "make")
-mean(subset(sethShots, shotQuadrant != "AtRim")$outcome == "make")
 
 ```
 
@@ -319,7 +323,7 @@ mean(subset(sethShots, shotQuadrant != "AtRim")$outcome == "make")
 
 focalPlayer <- 1243718
 
-plotShots <- subset(shotDB, playerID == 1243718)
+plotShots <- subset(shotDF, playerID == 1243718)
 
 ggplot(data = plotShots,
        aes(x = baseline,
@@ -328,13 +332,13 @@ ggplot(data = plotShots,
   geom_point(alpha = .75,size = 3) + 
   xlim(c(0,50)) + ylim(c(0,40))
 
-sum(subset(shotDB, playerID == focalPlayer & FGtype == 2)$actPts) / dim(subset(shotDB, playerID == focalPlayer & FGtype == 2))[1]
-sum(subset(shotDB, playerID == focalPlayer & FGtype == 2)$actPts)
-sum(subset(shotDB, playerID == focalPlayer & FGtype == 3)$actPts) / dim(subset(shotDB, playerID == focalPlayer & FGtype == 3))[1]
-sum(subset(shotDB, playerID == focalPlayer & FGtype == 3)$actPts)
+sum(subset(shotDF, playerID == focalPlayer & FGtype == 2)$actPts) / dim(subset(shotDF, playerID == focalPlayer & FGtype == 2))[1]
+sum(subset(shotDF, playerID == focalPlayer & FGtype == 2)$actPts)
+sum(subset(shotDF, playerID == focalPlayer & FGtype == 3)$actPts) / dim(subset(shotDF, playerID == focalPlayer & FGtype == 3))[1]
+sum(subset(shotDF, playerID == focalPlayer & FGtype == 3)$actPts)
 
-focalPlayer <- 1243718
-plotShots <- subset(shotDB, playerID == focalPlayer)
+focalPlayer <- 1239622
+plotShots <- subset(shotDF, playerID == focalPlayer)
 
 ggplot(data = plotShots,
        aes(x = baseline,
