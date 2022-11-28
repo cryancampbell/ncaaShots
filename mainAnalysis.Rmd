@@ -12,6 +12,7 @@ library(gt)
 
 gitDir <- "~/Documents/giterdone/ncaaShots/"
 dataDir <- paste0(gitDir,"data/")
+figDir <- paste0(gitDir,"figures/")
 
 setwd(gitDir)
 source(paste0(gitDir,"gzShots.R"))
@@ -90,6 +91,29 @@ ggplot(data = shotDF,
            col = shotQuadrant)) +
   geom_point(alpha = .15, size = 3.25, shape = 15)
 
+#home/away 3pt imbalance
+table(subset(shotDF, FGtype == 3)$shotQuadrant)
+
+table(subset(shotDF, FGtype == 3 & team.x == "home")$shotQuadrant)
+
+table(subset(shotDF, FGtype == 3 & team.x == "away")$shotQuadrant)
+
+ggplot() + 
+  geom_histogram(aes(x = subset(shotDF, FGtype == 3 & depth > 15)$calcDist))
+
+mean(subset(shotDF, FGtype == 3 & depth > 15 & calcDist < 22)$outcome == "make")
+mean(subset(shotDF, FGtype == 3 & depth > 15 & calcDist > 22 & calcDist <= 24)$outcome == "make")
+mean(subset(shotDF, FGtype == 3 & depth > 15 & calcDist > 24 & calcDist <= 26)$outcome == "make")
+mean(subset(shotDF, FGtype == 3 & depth > 15 & calcDist > 26 & calcDist <= 28)$outcome == "make")
+mean(subset(shotDF, FGtype == 3 & depth > 15 & calcDist > 28 & calcDist <= 30)$outcome == "make")
+mean(subset(shotDF, FGtype == 3 & depth > 15 & calcDist > 30)$outcome == "make")
+
+length(subset(shotDF, FGtype == 3 & depth > 15 & calcDist < 22)$outcome == "make")
+length(subset(shotDF, FGtype == 3 & depth > 15 & calcDist > 22 & calcDist <= 24)$outcome == "make")
+length(subset(shotDF, FGtype == 3 & depth > 15 & calcDist > 24 & calcDist <= 26)$outcome == "make")
+length(subset(shotDF, FGtype == 3 & depth > 15 & calcDist > 26 & calcDist <= 28)$outcome == "make")
+length(subset(shotDF, FGtype == 3 & depth > 15 & calcDist > 28 & calcDist <= 30)$outcome == "make")
+length(subset(shotDF, FGtype == 3 & depth > 15 & calcDist > 30)$outcome == "make")
 ```
 
 quadrant percents
@@ -140,7 +164,9 @@ shotDF$actPts <- shotDF$points - shotDF$expPts
 
 Table of Points Generated for a Team
 ```{r}
-focalTeam <- "North Carolina"
+#focalTeam <- "North Carolina"
+
+focalTeam <- "Alabama"
 
 subset(playerDF, team == focalTeam)
 
@@ -336,22 +362,8 @@ ggplot(data = nplyrShots,
 ```{r UNC stuff}
 
 focalPlayer <- 1243718
+focalPlayer <- 1133861
 
-plotShots <- subset(shotDF, playerID == 1243718)
-
-ggplot(data = plotShots,
-       aes(x = baseline,
-           y = depth,
-           col = outcome)) +
-  geom_point(alpha = .75,size = 3) + 
-  xlim(c(0,50)) + ylim(c(0,40))
-
-sum(subset(shotDF, playerID == focalPlayer & FGtype == 2)$actPts) / dim(subset(shotDF, playerID == focalPlayer & FGtype == 2))[1]
-sum(subset(shotDF, playerID == focalPlayer & FGtype == 2)$actPts)
-sum(subset(shotDF, playerID == focalPlayer & FGtype == 3)$actPts) / dim(subset(shotDF, playerID == focalPlayer & FGtype == 3))[1]
-sum(subset(shotDF, playerID == focalPlayer & FGtype == 3)$actPts)
-
-focalPlayer <- 1239622
 plotShots <- subset(shotDF, playerID == focalPlayer)
 
 ggplot(data = plotShots,
@@ -359,7 +371,8 @@ ggplot(data = plotShots,
            y = depth,
            col = outcome, 
            shape = as.character(FGtype))) +
-  geom_point(alpha = .75,size = 3) + 
+  geom_jitter(alpha = .75,size = 3) + 
   xlim(c(0,50)) + ylim(c(0,40))
+
 ```
 
