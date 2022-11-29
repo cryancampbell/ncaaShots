@@ -25,13 +25,22 @@ playerDB <- readRDS(paste0(gitDir,"playerDatabase.RDS"))
 Fixes
 -2497996 has NA in h1 (check for others, drop them, maybe purge at input)
 
+-h NA 2497996 2476165 2475011 2489570 2498323 2499930
+-a NA 2476165 2482591 2498387 2475485 2475015 2475018 2498550 2504983 2475011 2482546 2489584
+
+-2496295 has "goal" as a shot outcome
+
+
 
 To-Do
+-logos, twitter handles, conferences, in a master dataframe
 -plot of shot value v. shots taken
+    -do this by running the current code and storing all the data, just add a "top scorer" flag
 -shot chart fxn (ngames, ndates, % by quad)
 -find best defenders (impact on/off)
 -best overall on/off (defensive and offensive on/off)
 -good shooters good shots (after logos)
+
 
 
 -read in all 2021-22 data
@@ -164,9 +173,9 @@ shotDF$actPts <- shotDF$points - shotDF$expPts
 
 Table of Points Generated for a Team
 ```{r}
-#focalTeam <- "North Carolina"
+focalTeam <- "North Carolina"
 
-focalTeam <- "Alabama"
+#focalTeam <- "Alabama"
 
 subset(playerDF, team == focalTeam)
 
@@ -174,14 +183,22 @@ for (focalPlayer in subset(playerDF, team == focalTeam)$playerID) {
   focalName <- subset(playerDF, playerID == focalPlayer)$playerName
   #number of shots
   nShots  <- dim(subset(shotDF, playerID == focalPlayer))[1]
-  #points v exp
-  ptsOverExp <- sum(subset(shotDF, playerID == focalPlayer)$actPts)
-  
-  print(paste0(focalName," | ",nShots," shots | ",
-               round(ptsOverExp, digits = 1)," pts | ",
-               round(ptsOverExp/nShots, digits = 2)," per shot"))
+  if (nShots > 10) {
+    #points v exp
+    expPts <- sum(subset(shotDF, playerID == focalPlayer)$expPts) / nShots
+    ptsOverExp <- sum(subset(shotDF, playerID == focalPlayer)$actPts)
+    totPts <- expPts + (ptsOverExp / nShots)
+    
+    print(paste0(focalName," | ",nShots," shots | ",
+                 round(ptsOverExp, digits = 1)," pts | ",
+                 round(totPts, digits = 2)," pts/shot v. ",round(expPts, digits = 2)," expected"))
+  }
 }
 
+focalPlayer <- 1243722
+mean(subset(shotDF, playerID == focalPlayer & FGtype == 2)$calcDist> 10)
+focalPlayer <- 1243718
+mean(subset(shotDF, playerID == focalPlayer & FGtype == 2)$calcDist> 10)
 ```
 
 Top Point Generated in NCAA
@@ -200,8 +217,9 @@ ggplot() +
 
 #set shot min to top 20% of DB
 shotMin <- quantile(table(shotDF$playerID), probs = c(.8))
+gameMin <- quantile(table(c(gameDF$home,gameDF$away)))[3]
 ptsPerShot <- .1
-shotsPerGame <- 8
+shotsPerGame <- 9
 
 playerList <- names(table(shotDF$playerID)[table(shotDF$playerID) >= shotMin])
 
@@ -217,7 +235,7 @@ for (focalPlayer in playerList) {
   #points v exp
   ptsOverExp <- sum(subset(shotDF, playerID == focalPlayer)$actPts)
   
-  if ( ptsOverExp / nShots > ptsPerShot & nShots / nGames >= shotsPerGame ) {
+  if ( ptsOverExp / nShots > ptsPerShot & nShots / nGames >= shotsPerGame & nGames > gameMin) {
     tsPlayer <- c(tsPlayer,focalName)
     tsTeam <- c(tsTeam,playerTeam)
     tsnShots <- c(tsnShots,nShots)
@@ -250,7 +268,7 @@ gt_tbl <- gt(topScorers[,!colnames(topScorers) %in% "Shots"])
 gt_tbl <-
   gt_tbl %>%
     tab_header(
-      title = md("**Maui Inv. Top-10: Points Added Per Shot**"),
+      title = md("**NCAA Top-10: Points Added Per Shot**"),
       subtitle = paste0("Min Shots Charted = ",shotMin,"   |   Points Added Over NCAA Average")
       )
 
@@ -362,15 +380,15 @@ ggplot(data = nplyrShots,
 ```{r UNC stuff}
 
 focalPlayer <- 1243718
-focalPlayer <- 1133861
+focalPlayer <- 1243722
 
 plotShots <- subset(shotDF, playerID == focalPlayer)
 
 ggplot(data = plotShots,
        aes(x = baseline,
            y = depth,
-           col = outcome, 
-           shape = as.character(FGtype))) +
+           col = shotQuadrant, 
+           shape = outcome)) +
   geom_jitter(alpha = .75,size = 3) + 
   xlim(c(0,50)) + ylim(c(0,40))
 
