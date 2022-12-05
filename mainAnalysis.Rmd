@@ -30,6 +30,9 @@ Fixes
 
 -2496295 has "goal" as a shot outcome
 
+-2475546 broke loop, 20221203 is borked
+-- 20221204 also borked 2502026 
+
 
 
 To-Do
