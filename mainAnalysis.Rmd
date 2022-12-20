@@ -33,6 +33,12 @@ Fixes
 -2475546 broke loop, 20221203 is borked
 -- 20221204 also borked 2502026 
 
+20221217 errors
+-- 2498120, 2492289
+head: illegal line count -- -1
+head: illegal line count -- -1
+Error in read.table(file = file, header = header, sep = sep, quote = quote,  : 
+
 
 
 To-Do
@@ -74,7 +80,7 @@ for (gameDate in needDates) {
   
   gameList <- read.table("tmpFiles/gameList.txt")
   
-  for (g in gameList$V1) {
+  for (g in gameList) {
     
     if (! g %in% readRDS(paste0(gitDir,"gameDatabase.RDS"))$gameNum ) {
       shotDB <- readRDS(paste0(gitDir,"shotDatabase.RDS"))
@@ -177,8 +183,6 @@ shotDF$actPts <- shotDF$points - shotDF$expPts
 Table of Points Generated for a Team
 ```{r}
 focalTeam <- "North Carolina"
-
-#focalTeam <- "Alabama"
 
 subset(playerDF, team == focalTeam)
 
