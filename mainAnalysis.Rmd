@@ -117,7 +117,8 @@ table(subset(shotDF, FGtype == 3 & team.x == "home")$shotQuadrant)
 table(subset(shotDF, FGtype == 3 & team.x == "away")$shotQuadrant)
 
 ggplot() + 
-  geom_histogram(aes(x = subset(shotDF, FGtype == 3 & depth > 15)$calcDist))
+  geom_histogram(aes(x = subset(shotDF, FGtype == 3 & depth > 15)$calcDist), 
+                 binwidth = 1)
 
 mean(subset(shotDF, FGtype == 3 & depth > 15 & calcDist < 22)$outcome == "make")
 mean(subset(shotDF, FGtype == 3 & depth > 15 & calcDist > 22 & calcDist <= 24)$outcome == "make")
@@ -202,10 +203,28 @@ for (focalPlayer in subset(playerDF, team == focalTeam)$playerID) {
   }
 }
 
-focalPlayer <- 1243722
-mean(subset(shotDF, playerID == focalPlayer & FGtype == 2)$calcDist> 10)
-focalPlayer <- 1243718
-mean(subset(shotDF, playerID == focalPlayer & FGtype == 2)$calcDist> 10)
+#mando
+focalPlayer <- 1185948
+#nance
+focalPlayer <- 1133861
+
+focalName <- subset(playerDF, playerID == focalPlayer)$playerName
+#number of shots
+
+
+for (g in unique(subset(shotDF, playerID == focalPlayer)$gameNum)) {
+  #points v exp
+  oppName <- subset(shotDF, playerID == focalPlayer & gameNum == g)$oppAbbv[1]
+  nShots  <- dim(subset(shotDF, playerID == focalPlayer & gameNum == g))[1]
+  expPts <- sum(subset(shotDF, playerID == focalPlayer & gameNum == g)$expPts) / nShots
+  ptsOverExp <- sum(subset(shotDF, playerID == focalPlayer & gameNum == g)$actPts)
+  totPts <- expPts + (ptsOverExp / nShots)
+  
+  print(paste0(oppName," | ",nShots," shots | ",
+               round(ptsOverExp, digits = 1)," pts | ",
+               round(totPts, digits = 2)," pts/shot v. ",round(expPts, digits = 2)," expected"))
+}
+
 ```
 
 Top Point Generated in NCAA
@@ -382,7 +401,65 @@ ggplot(data = nplyrShots,
 
 ```
 
+UNC defense
+```{r}
 
+playerList <- subset(playerDF, teamAbbv == "UNC")$playerID
+
+p <- playerList[3]
+
+for (p in playerList) {
+  playerName <- subset(playerDF, playerID == p)$playerName
+  teamAbbv <- subset(playerDF, playerID == p)$teamAbbv
+  
+  ### THIS ONLY CHECKS FOR HOME TEAM... WHOOPS - FIRST DROP shotDF by TEAM/OPP then any player as below:
+  
+  #shots against Seth
+  plyrIn <- shotDF$h1 == p | shotDF$h2 == p | shotDF$h3 == p | shotDF$h4 == p | shotDF$h5 == p | shotDF$a1 == p | shotDF$a2 == p | shotDF$a3 == p | shotDF$a4 == p | shotDF$a5 == p
+  
+  plyrShots <- shotDF[plyrIn,]
+  nplyrShots <- shotDF[!plyrIn,]
+  
+  nplyrShots <- nplyrShots[which(nplyrShots$oppAbbv == teamAbbv),]
+  plyrShots <- plyrShots[which(plyrShots$oppAbbv == teamAbbv),]
+
+  #needs to be on-off for 25/75%
+  percentTeamShots <- dim(plyrShots)[1] / (dim(plyrShots)[1] + dim(nplyrShots)[1])
+  
+    
+    
+  offCourt <- 1 - mean(nplyrShots$outcome == "miss")
+  offCourtPts <- sum(nplyrShots$actPts) / dim(nplyrShots)[1]
+  onCourt <- 1 - mean(plyrShots$outcome == "miss")
+  onCourtPts <- sum(plyrShots$actPts) / dim(plyrShots)[1]
+  benchDiff <- 100 * (offCourt - onCourt)
+  benchDiffPts <- offCourtPts - onCourtPts
+  
+  #rim, close, 3pt difference
+  rimDiff <- round(100 * (mean(subset(plyrShots, shotQuadrant == "AtRim")$points != 0) - mean(subset(nplyrShots, shotQuadrant == "AtRim")$points != 0)), digits = 1)
+  
+  closeDiff <- round(100 * (mean(subset(plyrShots, shotLoc %in% c("0-5ft","5-10ft"))$points != 0) - mean(subset(nplyrShots, shotLoc %in% c("0-5ft","5-10ft"))$points != 0)), digits = 1)
+  
+  threeDiff <- round(100 * (mean(subset(plyrShots, shotLoc == "Three")$points != 0) - mean(subset(nplyrShots, shotLoc == "Three")$points != 0)), digits = 1)
+
+  
+  print(paste0(playerName," | ",round(benchDiffPts, digits = 3)," | ",round(benchDiff, digits = 1)," | ",
+               dim(plyrShots)[1],"/",dim(nplyrShots)[1]," | ",rimDiff,"/",closeDiff,"/",threeDiff))
+}
+
+ggplot(data = plyrShots,
+       aes(x = baseline,
+           y = depth,
+           col = outcome)) +
+  geom_point(alpha = .75, size = 3.25)
+
+ggplot(data = nplyrShots,
+       aes(x = baseline,
+           y = depth,
+           col = outcome)) +
+  geom_point(alpha = .75, size = 3.25)
+
+```
 
 ```{r UNC stuff}
 
