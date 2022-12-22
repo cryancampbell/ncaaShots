@@ -80,7 +80,7 @@ for (gameDate in needDates) {
   
   gameList <- read.table("tmpFiles/gameList.txt")
   
-  for (g in gameList) {
+  for (g in gameList$V1) {
     
     if (! g %in% readRDS(paste0(gitDir,"gameDatabase.RDS"))$gameNum ) {
       shotDB <- readRDS(paste0(gitDir,"shotDatabase.RDS"))
