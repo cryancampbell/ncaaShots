@@ -206,7 +206,7 @@ for (focalPlayer in subset(playerDF, team == focalTeam)$playerID) {
 #mando
 focalPlayer <- 1185948
 #nance
-focalPlayer <- 1133861
+#focalPlayer <- 1133861
 
 focalName <- subset(playerDF, playerID == focalPlayer)$playerName
 #number of shots
