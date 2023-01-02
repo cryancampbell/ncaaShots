@@ -7,6 +7,7 @@ date: '2022-11-09'
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(dplyr)
+library(plyr)
 library(ggplot2)
 library(gt)
 

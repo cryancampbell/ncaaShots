@@ -236,7 +236,7 @@ plotShots <- function(allShots = shotDF, gameData = gameDF, name = "Caleb Love",
   hulls <- ddply(allShots, "shotQuadrant", find_hull)
   
   sQuads <- data.frame(c(20,20,30,30),
-                       c(5,10,10,5),
+                       c(4,10,10,4),
                        c(1,1,1,1),
                        c("AtRim","AtRim","AtRim","AtRim"))
   
@@ -252,4 +252,4 @@ plotShots <- function(allShots = shotDF, gameData = gameDF, name = "Caleb Love",
     xlab("") + ylab("") +
     geom_point(alpha = 2/3, size = 2.5)
   
-}
+  }
