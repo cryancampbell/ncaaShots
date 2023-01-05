@@ -40,6 +40,17 @@ head: illegal line count -- -1
 head: illegal line count -- -1
 Error in read.table(file = file, header = header, sep = sep, quote = quote,  : 
 
+2489601 errors
+head: illegal line count -- -1
+head: illegal line count -- -1
+Error in read.table(file = file, header = header, sep = sep, quote = quote,  : 
+
+
+2498913 errors
+Error in if (lastShortReset > lastFullReset) { : 
+  argument is of length zero
+
+
 
 
 To-Do
@@ -81,7 +92,7 @@ for (gameDate in needDates) {
   
   gameList <- read.table("tmpFiles/gameList.txt")
   
-  for (g in gameList$V1) {
+  for (g in gameList$V1[46:117]) {
     
     if (! g %in% readRDS(paste0(gitDir,"gameDatabase.RDS"))$gameNum ) {
       shotDB <- readRDS(paste0(gitDir,"shotDatabase.RDS"))
