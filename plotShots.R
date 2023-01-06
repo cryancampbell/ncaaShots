@@ -1,9 +1,7 @@
 allShots <- shotDF
 gameData <- gameDF
-name <- "Caleb Love"
 name <- "RJ Davis"
-name <- "Armando Bacot"
-name <- "Pete Nance"
+#name <- "Armando Bacot"
 team <- NA
 ID <- NA
 teamPlot <- FALSE
@@ -79,7 +77,7 @@ plotShots <- function(allShots = shotDF, gameData = gameDF, name = "Caleb Love",
     shooterGames <- unique(plotShots$gameNum)
     shooterGameData <- gameData[gameData$gameNum %in% shooterGames,]
     #sort the games by reverse date
-    shooterGameData <- shooterGameData[order(as.Date(shooterGameData$date, format = "%B %d %y"), decreasing = TRUE),]
+    shooterGameData <- shooterGameData[order(as.Date(shooterGameData$date, format = "%B %d %Y"), decreasing = TRUE),]
     plotGames <- shooterGameData$gameNum[1:lastNgames]
     
     plotShots <- subset(plotShots, gameNum %in% plotGames)
@@ -163,4 +161,4 @@ plotShots <- function(allShots = shotDF, gameData = gameDF, name = "Caleb Love",
   
   #data frame of: zones, percents, number shots, points added
   
-  }
+}

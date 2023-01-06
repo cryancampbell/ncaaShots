@@ -10,6 +10,7 @@ library(dplyr)
 library(plyr)
 library(ggplot2)
 library(gt)
+library(ggrepel)
 
 gitDir <- "~/Documents/giterdone/ncaaShots/"
 dataDir <- paste0(gitDir,"data/")
@@ -92,7 +93,7 @@ for (gameDate in needDates) {
   
   gameList <- read.table("tmpFiles/gameList.txt")
   
-  for (g in gameList$V1[46:117]) {
+  for (g in gameList$V1) {
     
     if (! g %in% readRDS(paste0(gitDir,"gameDatabase.RDS"))$gameNum ) {
       shotDB <- readRDS(paste0(gitDir,"shotDatabase.RDS"))
