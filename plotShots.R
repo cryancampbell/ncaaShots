@@ -118,31 +118,40 @@ plotShots <- function(allShots = shotDF, gameData = gameDF, name = "Caleb Love",
     geom_polygon(data = court[court$side==1,], aes(x = x, y = y, group = group), col = "gray50") +
     coord_equal() + xlim(-3,54) + ylim(-3,50) +
     xlab("") + ylab("") +
-    geom_jitter(alpha = 2/3, size = 2.5, width = .5, height = .5) +
+    geom_point(aes(shape = outcome), size = 3, height = .2, width = .2, stroke = 2) +
+    scale_shape_manual(values = c(4,1)) +
     #geom_point(alpha = .66, size = 2) +
     scale_colour_gradientn(colors = plotCols3,limits=c(-25, 25)) +
     labs(col = "FG% +/-\nNCAA Avg") +
     ggtitle(playerTitle) +
+    geom_image(x = 5, y = 42, 
+               aes(image = "~/Dropbox (Personal)/misc/bball_stats/5F/5F.png"),
+               size = .1) +
     theme_classic() +
     theme(axis.text.x = element_blank(),
-          axis.text.y = element_blank(), axis.ticks.x = element_blank(),
-          axis.ticks.y = element_blank(), axis.title = element_blank(),
-          axis.line=element_blank())
+          axis.text.y = element_blank(),
+          axis.ticks.x = element_blank(),
+          axis.ticks.y = element_blank(),
+          axis.title = element_blank(),
+          axis.line=element_blank(),
+          legend.position = c(.82,.78),
+          legend.background=element_blank()) +
+    guides(shape = "none")
   
   #add last n games, opponents, colors, 
   ggsave(filename = paste0(saveDir,"/",playerTitle,"_shots.png"), 
-         plot = shotPlot)
-  
+         plot = shotPlot, height = 8, width = 8)
   
   
   ### zone version
   zonePlot <- ggplot() +
     geom_polygon(data = court[court$side==1,], aes(x = x, y = y, group = group), col = "gray50") +
-    geom_polygon(data = sqPoly, aes(x = x, y = y, group = group, fill = sqDiffLim), alpha = .75) +
     geom_jitter(data = plotShots,
                aes(x = baseline,
-                   y = depth),
-                   alpha = .15, size = 2.5) +
+                   y = depth,
+                   shape = outcome),
+                   alpha = 1/3, size = 2, stroke = 1.5, height = .25, width = .25) +
+    geom_polygon(data = sqPoly, aes(x = x, y = y, group = group, fill = sqDiffLim), alpha = .75) +
     coord_equal() +
     scale_y_continuous(breaks = c(0, 23.5, 47)) +
     scale_x_continuous(breaks = c(0, 12.5, 25, 37.5, 50)) +
@@ -150,14 +159,23 @@ plotShots <- function(allShots = shotDF, gameData = gameDF, name = "Caleb Love",
     scale_fill_gradientn(colours = plotCols3,limits=c(-25, 25)) +
     labs(fill = "FG% +/-\nNCAA Avg") +
     ggtitle(playerTitle) +
+    geom_image(x = 5, y = 42, 
+               aes(image = "~/Dropbox (Personal)/misc/bball_stats/5F/5F.png"),
+               size = .1) +
     theme_classic() +
     theme(axis.text.x = element_blank(),
-          axis.text.y = element_blank(), axis.ticks.x = element_blank(),
-          axis.ticks.y = element_blank(), axis.title = element_blank(),
-          axis.line=element_blank())
+          axis.text.y = element_blank(),
+          axis.ticks.x = element_blank(),
+          axis.ticks.y = element_blank(),
+          axis.title = element_blank(),
+          axis.line=element_blank(),
+          legend.position = c(.82,.78),
+          legend.background=element_blank()) +
+    scale_shape_manual(values = c(4,1)) +
+    guides(shape = "none")
   
   ggsave(filename = paste0(saveDir,"/",playerTitle,"_zones.png"), 
-         plot = zonePlot)
+         plot = zonePlot, height = 8, width = 8)
   
   #data frame of: zones, percents, number shots, points added
   

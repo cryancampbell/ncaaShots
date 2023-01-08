@@ -1,7 +1,7 @@
 allShots <- shotDF
 gameData <- gameDF
-#name <- "RJ Davis"
-name <- "Caleb Love"
+name <- "RJ Davis"
+#name <- "Caleb Love"
 #name <- "Armando Bacot"
 team <- NA
 ID <- NA
@@ -11,7 +11,7 @@ gameID <- NA
 defense <- FALSE
 #name <- "Arizona"
 plotType <- "shots"
-lastNgames <- 3
+lastNgames <- NA
 oppList <- "all"
 colPalette <- "blueRed"
 saveDir <- "/Users/ryan/Dropbox (Personal)/misc/bball_stats/gz22/plots"
@@ -125,20 +125,32 @@ singleGame <- function(allShots = shotDF, gameData = gameDF, name = "Caleb Love"
     scale_shape_manual(values = c(4,1)) +
     labs(col = "FG% +/-\nNCAA Avg") +
     ggtitle(playerTitle) +
+    geom_image(x = 5, y = 42, 
+               aes(image = "~/Dropbox (Personal)/misc/bball_stats/5F/5F.png"),
+               size = .1) +
     theme_classic() +
     theme(axis.text.x = element_blank(),
-          axis.text.y = element_blank(), axis.ticks.x = element_blank(),
-          axis.ticks.y = element_blank(), axis.title = element_blank(),
-          axis.line=element_blank())
+          axis.text.y = element_blank(),
+          axis.ticks.x = element_blank(),
+          axis.ticks.y = element_blank(),
+          axis.title = element_blank(),
+          axis.line=element_blank(),
+          legend.position = c(.82,.8),
+          legend.background=element_blank(),
+          legend.key.size = unit(.5, 'cm'),
+          legend.title = element_text(size=9),
+          legend.text = element_text(size=7)) +
+    guides(shape = "none")
+
   
   if (length(unique(plotShots$gameNum)) == 1) {
     #add last n games, opponents, colors, 
     shotPlot <- shotPlot + geom_text_repel(data = plotShots, aes(x = baseline, y = depth, label = round(actPts, digits = 1)), size = 2, col = "gray30")
     ggsave(filename = paste0(saveDir,"/",playerTitle,"_v_",plotShots$oppAbbv[1],"_",possibleGames$date[1],"_singleGameShots.png"), 
-           plot = shotPlot)
+           plot = shotPlot, height = 8, width = 8)
   } else {
     ggsave(filename = paste0(saveDir,"/",playerTitle,"_last",length(unique(plotShots$gameNum)),"games_",possibleGames$date[1],"_singleGameShots.png"), 
-           plot = shotPlot)
+           plot = shotPlot, height = 8, width = 8)
   }
   
   
