@@ -125,9 +125,6 @@ singleGame <- function(allShots = shotDF, gameData = gameDF, name = "Caleb Love"
     scale_shape_manual(values = c(4,1)) +
     labs(col = "FG% +/-\nNCAA Avg") +
     ggtitle(playerTitle) +
-    geom_image(x = 5, y = 42, 
-               aes(image = "~/Dropbox (Personal)/misc/bball_stats/5F/5F.png"),
-               size = .1) +
     theme_classic() +
     theme(axis.text.x = element_blank(),
           axis.text.y = element_blank(),
@@ -141,6 +138,8 @@ singleGame <- function(allShots = shotDF, gameData = gameDF, name = "Caleb Love"
           legend.title = element_text(size=9),
           legend.text = element_text(size=7)) +
     guides(shape = "none")
+  
+  shotPlot <- shotPlot + geom_image(x = 5, y = 42, aes(image = "~/Dropbox (Personal)/misc/bball_stats/5F/5F.png"), size = .1)
 
   
   if (length(unique(plotShots$gameNum)) == 1) {

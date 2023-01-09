@@ -124,9 +124,6 @@ plotShots <- function(allShots = shotDF, gameData = gameDF, name = "Caleb Love",
     scale_colour_gradientn(colors = plotCols3,limits=c(-25, 25)) +
     labs(col = "FG% +/-\nNCAA Avg") +
     ggtitle(playerTitle) +
-    geom_image(x = 5, y = 42, 
-               aes(image = "~/Dropbox (Personal)/misc/bball_stats/5F/5F.png"),
-               size = .1) +
     theme_classic() +
     theme(axis.text.x = element_blank(),
           axis.text.y = element_blank(),
@@ -137,6 +134,8 @@ plotShots <- function(allShots = shotDF, gameData = gameDF, name = "Caleb Love",
           legend.position = c(.82,.78),
           legend.background=element_blank()) +
     guides(shape = "none")
+  
+  shotPlot <- shotPlot + geom_image(x = 5, y = 42, aes(image = "~/Dropbox (Personal)/misc/bball_stats/5F/5F.png"), size = .1)
   
   #add last n games, opponents, colors, 
   ggsave(filename = paste0(saveDir,"/",playerTitle,"_shots.png"), 
@@ -159,9 +158,6 @@ plotShots <- function(allShots = shotDF, gameData = gameDF, name = "Caleb Love",
     scale_fill_gradientn(colours = plotCols3,limits=c(-25, 25)) +
     labs(fill = "FG% +/-\nNCAA Avg") +
     ggtitle(playerTitle) +
-    geom_image(x = 5, y = 42, 
-               aes(image = "~/Dropbox (Personal)/misc/bball_stats/5F/5F.png"),
-               size = .1) +
     theme_classic() +
     theme(axis.text.x = element_blank(),
           axis.text.y = element_blank(),
@@ -173,6 +169,8 @@ plotShots <- function(allShots = shotDF, gameData = gameDF, name = "Caleb Love",
           legend.background=element_blank()) +
     scale_shape_manual(values = c(4,1)) +
     guides(shape = "none")
+  
+  zonePlot <- zonePlot + geom_image(x = 5, y = 42, aes(image = "~/Dropbox (Personal)/misc/bball_stats/5F/5F.png"), size = .1)
   
   ggsave(filename = paste0(saveDir,"/",playerTitle,"_zones.png"), 
          plot = zonePlot, height = 8, width = 8)
