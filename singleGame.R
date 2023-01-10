@@ -233,6 +233,6 @@ singleGame <- function(allShots = shotDF, gameData = gameDF, name = "Caleb Love"
            plot = zonePlot, height = 8, width = 8)
   }
   
-  #data frame of: zones, percents, number shots, points added
+  #data frame of: zones, percents, number shots, points added then make that a table for sharing with the plot
   
 }
