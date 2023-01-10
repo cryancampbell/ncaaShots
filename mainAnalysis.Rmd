@@ -11,6 +11,7 @@ library(plyr)
 library(ggplot2)
 library(gt)
 library(ggrepel)
+library(ggimage)
 
 gitDir <- "~/Documents/giterdone/ncaaShots/"
 dataDir <- paste0(gitDir,"data/")

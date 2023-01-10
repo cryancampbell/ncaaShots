@@ -1,6 +1,7 @@
 allShots <- shotDF
 gameData <- gameDF
 name <- "RJ Davis"
+name <- "Reece Beekman"
 #name <- "Caleb Love"
 #name <- "Armando Bacot"
 team <- NA
@@ -11,16 +12,19 @@ gameID <- NA
 defense <- FALSE
 #name <- "Arizona"
 plotType <- "shots"
-lastNgames <- NA
+lastNgames <- 3
 oppList <- "all"
 colPalette <- "blueRed"
+zoneColor <- "season"
+playerData <- playerDF
+#zoneColor <- "plot"
 saveDir <- "/Users/ryan/Dropbox (Personal)/misc/bball_stats/gz22/plots"
 
 singleGame <- function(allShots = shotDF, gameData = gameDF, name = "Caleb Love", ID = NA,
                        team = NA, teamPlot = FALSE, defense = FALSE,
                        plotType = "shots", gameID = NA, lastNgames = 3,
-                       colPalette = "blueRed",
-                       saveDir = "~/Dropbox (Personal)/misc/bball_stats/") {
+                       colPalette = "blueRed", zoneColor = "season",
+                       playerData = playerDF, saveDir = "~/Dropbox (Personal)/misc/bball_stats/") {
   ###############
   ## draw the court ##
   court <- readRDS("~/Documents/giterdone/ncaaShots/data/court.RDS")
@@ -112,19 +116,49 @@ singleGame <- function(allShots = shotDF, gameData = gameDF, name = "Caleb Love"
     plotShots <- subset(plotShots, gameNum == gameID)
   }
   
+  #from player's entire history
+  plotShots$sqDiffnGames <- 0
+  
+  #generate +/- average from this set of data
+  for (sq in unique(plotShots$shotQuadrant)) {
+    #sq <- "Three_Center"
+    quadrantAvg <- mean(subset(plotShots, shotQuadrant == sq)$points != 0)
+    qNCAAAavg <- mean(subset(plotShots, shotQuadrant == sq)$expFGPer)
+    sqDiffnGames <- 100 * (quadrantAvg - qNCAAAavg)
+    plotShots$sqDiffnGames[plotShots$shotQuadrant == sq] <- sqDiffnGames
+    sqPoly$sqDiff[sqPoly$group == sq] <- sqDiffnGames
+    print(paste0(sq," - ",sqDiffnGames))
+  }
+  
+  plotShots$sqDiffnGames <- ifelse(plotShots$sqDiffnGames > 50, 50,
+                                ifelse(plotShots$sqDiffnGames < -50, -50, plotShots$sqDiffnGames))
+  
+  #plot info
+  teamName <- subset(playerData, team == plotShots$shotTeam[1])$teamAbbv[1]
+  plotGames <- length(unique(plotShots$gameNum))
+  totalShotsPerGame <- round(dim(plotShots)[1] / plotGames, digits = 1)
+  addedPointsPerGame <- round(sum(plotShots$actPts) / plotGames, digits = 1)
+
+  if (addedPointsPerGame > 0) {
+    plusOrMinus <- "+"
+  } else {
+    plusOrMinus <- ""
+  }
+  
   shotPlot <- ggplot() +
     geom_polygon(data = court[court$side==1,], aes(x = x, y = y, group = group), col = "gray50") +
-    coord_equal() + xlim(-3,54) + ylim(-3,50) +
+    coord_equal() + xlim(-1,51) + ylim(-1,47) +
     xlab("") + ylab("") +
     geom_jitter(data = plotShots,
                 aes(x = baseline,
                     y = depth,
-                    col = sqDiffLim,
+                    col = sqDiffnGames,
                     shape = outcome), size = 3, height = .2, width = .2, stroke = 2) +
-    scale_colour_gradientn(colors = plotCols3,limits=c(-25, 25)) +
+    scale_colour_gradientn(colors = plotCols3,limits=c(-50, 50)) +
     scale_shape_manual(values = c(4,1)) +
     labs(col = "FG% +/-\nNCAA Avg") +
-    ggtitle(playerTitle) +
+    ggtitle(paste0(playerTitle,", ",teamName),
+            subtitle = paste0("Last ",plotGames," games: ",plusOrMinus,addedPointsPerGame," points/game on ",totalShotsPerGame," shots/game")) +
     theme_classic() +
     theme(axis.text.x = element_blank(),
           axis.text.y = element_blank(),
@@ -132,14 +166,16 @@ singleGame <- function(allShots = shotDF, gameData = gameDF, name = "Caleb Love"
           axis.ticks.y = element_blank(),
           axis.title = element_blank(),
           axis.line=element_blank(),
-          legend.position = c(.82,.8),
+          legend.position = c(.87,.81),
           legend.background=element_blank(),
-          legend.key.size = unit(.5, 'cm'),
+          legend.key.size = unit(.75, 'cm'),
           legend.title = element_text(size=9),
-          legend.text = element_text(size=7)) +
+          legend.text = element_text(size=7),
+          plot.title = element_text(size=42, hjust = .5, vjust = -2, face = "bold"),
+          plot.subtitle = element_text(size=16, hjust = .5, vjust = -5.5, face = "italic")) +
     guides(shape = "none")
   
-  shotPlot <- shotPlot + geom_image(x = 5, y = 42, aes(image = "~/Dropbox (Personal)/misc/bball_stats/5F/5F.png"), size = .1)
+  shotPlot <- shotPlot + geom_image(x = 4, y = 43, aes(image = "~/Dropbox (Personal)/misc/bball_stats/5F/5F.png"), size = .11)
 
   
   if (length(unique(plotShots$gameNum)) == 1) {
@@ -152,31 +188,50 @@ singleGame <- function(allShots = shotDF, gameData = gameDF, name = "Caleb Love"
            plot = shotPlot, height = 8, width = 8)
   }
   
-  
+  sqPolySingleGame <- subset(sqPoly, group %in% unique(plotShots$shotQuadrant))
   
   ### zone version
-  # zonePlot <- ggplot() +
-  #   geom_polygon(data = court[court$side==1,], aes(x = x, y = y, group = group), col = "gray50") +
-  #   geom_polygon(data = sqPoly, aes(x = x, y = y, group = group, fill = sqDiffLim), alpha = .75) +
-  #   geom_jitter(data = plotShots,
-  #               aes(x = baseline,
-  #                   y = depth),
-  #               alpha = .15, size = 2.5) +
-  #   coord_equal() +
-  #   scale_y_continuous(breaks = c(0, 23.5, 47)) +
-  #   scale_x_continuous(breaks = c(0, 12.5, 25, 37.5, 50)) +
-  #   xlab("") + ylab("") +
-  #   scale_fill_gradientn(colours = plotCols3,limits=c(-25, 25)) +
-  #   labs(fill = "FG% +/-\nNCAA Avg") +
-  #   ggtitle(playerTitle) +
-  #   theme_classic() +
-  #   theme(axis.text.x = element_blank(),
-  #         axis.text.y = element_blank(), axis.ticks.x = element_blank(),
-  #         axis.ticks.y = element_blank(), axis.title = element_blank(),
-  #         axis.line=element_blank())
-  # 
-  # ggsave(filename = paste0(saveDir,"/",playerTitle,"_zones.png"), 
-  #        plot = zonePlot)
+  zonePlot <- ggplot() +
+    geom_polygon(data = sqPolySingleGame, aes(x = x, y = y, group = group, fill = sqDiffLim), alpha = .75) +
+    geom_jitter(data = plotShots,
+                aes(x = baseline,
+                    y = depth,
+                    #col = sqDiffnGames,
+                    shape = outcome), alpha = .75, size = 3, height = .2, width = .2, stroke = 2, col = "gray20") +
+                    #shape = outcome), alpha = .75, size = 3, height = .2, width = .2, stroke = 2) +
+    geom_polygon(data = court[court$side==1,], aes(x = x, y = y, group = group), col = "gray50") +
+    coord_equal() +
+    scale_y_continuous(breaks = c(0, 23.5, 47)) +
+    scale_x_continuous(breaks = c(0, 12.5, 25, 37.5, 50)) +
+    xlab("") + ylab("") +
+    scale_fill_gradientn(colours = plotCols3,limits=c(-25, 25)) +
+    #scale_color_gradientn(colours = plotCols3,limits=c(-50, 50)) +
+    scale_shape_manual(values = c(4,1)) +
+    labs(fill = "FG% +/-\nNCAA Avg") +
+    ggtitle(playerTitle) +
+    theme_classic() +
+    theme(axis.text.x = element_blank(),
+          axis.text.y = element_blank(),
+          axis.ticks.x = element_blank(),
+          axis.ticks.y = element_blank(),
+          axis.title = element_blank(),
+          axis.line=element_blank(),
+          legend.position = c(.9,.84),
+          legend.background=element_blank(),
+          legend.key.size = unit(.5, 'cm'),
+          legend.title = element_text(size=9),
+          legend.text = element_text(size=7)) + 
+    guides(shape = "none")
+  
+  zonePlot <- zonePlot + geom_image(x = 4, y = 43, aes(image = "~/Dropbox (Personal)/misc/bball_stats/5F/5F.png"), size = .1)
+  
+  if (length(unique(plotShots$gameNum)) == 1) {
+    ggsave(filename = paste0(saveDir,"/",playerTitle,"_v_",plotShots$oppAbbv[1],"_",possibleGames$date[1],"_singleGameZone.png"), 
+           plot = zonePlot, height = 8, width = 8)
+  } else {
+    ggsave(filename = paste0(saveDir,"/",playerTitle,"_last",length(unique(plotShots$gameNum)),"games_",possibleGames$date[1],"_singleGameZone.png"), 
+           plot = zonePlot, height = 8, width = 8)
+  }
   
   #data frame of: zones, percents, number shots, points added
   
