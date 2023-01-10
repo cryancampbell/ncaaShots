@@ -6,9 +6,9 @@ name <- "RJ Davis"
 team <- NA
 ID <- NA
 teamPlot <- FALSE
-#teamPlot <- TRUE
+teamPlot <- TRUE
 defense <- FALSE
-#name <- "Arizona"
+name <- "North Carolina"
 plotType <- "shots"
 lastNgames <- "all"
 oppList <- "all"
@@ -112,7 +112,15 @@ plotShots <- function(allShots = shotDF, gameData = gameDF, name = "Caleb Love",
                                 ifelse(sqPoly$sqDiff < -25, -25, sqPoly$sqDiff))
   
   #plot info
-  teamName <- subset(playerData, team == plotShots$shotTeam[1])$teamAbbv[1]
+  
+  if (teamPlot) {
+    teamName <- ""
+  } else {
+    teamName <- subset(playerData, team == plotShots$shotTeam[1])$teamAbbv[1]
+    teamName <- paste0(", ",teamName)
+  }
+  
+  
   plotGames <- length(unique(plotShots$gameNum))
   totalShotsPerGame <- round(dim(plotShots)[1] / plotGames, digits = 1)
   addedPointsPerGame <- round(sum(plotShots$actPts) / plotGames, digits = 1)
@@ -158,9 +166,11 @@ plotShots <- function(allShots = shotDF, gameData = gameDF, name = "Caleb Love",
          plot = shotPlot, height = 8, width = 8)
   
   
+  sqPolySingleGame <- subset(sqPoly, group %in% unique(plotShots$shotQuadrant))
+  
   ### zone version
   zonePlot <- ggplot() +
-    geom_polygon(data = sqPoly, aes(x = x, y = y, group = group, fill = sqDiffLim), alpha = .75) +
+    geom_polygon(data = sqPolySingleGame, aes(x = x, y = y, group = group, fill = sqDiffLim), alpha = .75) +
     geom_jitter(data = plotShots,
                 aes(x = baseline,
                     y = depth,
@@ -174,7 +184,7 @@ plotShots <- function(allShots = shotDF, gameData = gameDF, name = "Caleb Love",
     scale_fill_gradientn(colours = plotCols3,limits=c(-25, 25)) +
     labs(fill = "FG% +/-\nNCAA Avg") +
     scale_shape_manual(values = c(4,1)) +
-    ggtitle(paste0(playerTitle,", ",teamName),
+    ggtitle(paste0(playerTitle,teamName),
             subtitle = paste0("Season Stats: ",plusOrMinus,addedPointsPerGame," points/game on ",totalShotsPerGame," shots/game")) +
     theme_classic() +
     theme(axis.text.x = element_blank(),

@@ -195,6 +195,36 @@ shotDF$actPts <- shotDF$points - shotDF$expPts
 #allBxD <- unique(paste0(shotDF$baseline,"_",shotDF$depth))
 ```
 
+Generate some plots
+```{r}
+allShots <- shotDF
+gameData <- gameDF
+name <- "RJ Davis"
+#name <- "Reece Beekman"
+#name <- "Armando Bacot"
+team <- NA
+ID <- NA
+teamPlot <- FALSE
+#teamPlot <- TRUE
+defense <- FALSE
+#name <- "Arizona"
+plotType <- "shots"
+lastNgames <- "all"
+oppList <- "all"
+playerData <- playerDF
+colPalette <- "blueRed"
+saveDir <- "/Users/ryan/Dropbox (Personal)/misc/bball_stats/gz22/plots"
+
+#save the latest shotDF as an RDS, and then pull these straight in inside the function
+plotShots(allShots = shotDF, gameData = gameDF, playerData = playerDF, 
+          name = "Armando Bacot", saveDir = "/Users/ryan/Dropbox (Personal)/misc/bball_stats/gz22/plots")
+
+plotShots(allShots = shotDF, gameData = gameDF, playerData = playerDF, 
+          name = "Arizona", teamPlot = TRUE, saveDir = "/Users/ryan/Dropbox (Personal)/misc/bball_stats/gz22/plots")
+```
+
+
+
 Table of Points Generated for a Team
 ```{r}
 focalTeam <- "North Carolina"
