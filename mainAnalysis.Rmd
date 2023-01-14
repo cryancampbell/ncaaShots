@@ -217,10 +217,69 @@ saveDir <- "/Users/ryan/Dropbox (Personal)/misc/bball_stats/gz22/plots"
 
 #save the latest shotDF as an RDS, and then pull these straight in inside the function
 plotShots(allShots = shotDF, gameData = gameDF, playerData = playerDF, 
-          name = "Armando Bacot", saveDir = "/Users/ryan/Dropbox (Personal)/misc/bball_stats/gz22/plots")
+          name = "Caleb Love", saveDir = "/Users/ryan/Dropbox (Personal)/misc/bball_stats/gz22/plots")
 
 plotShots(allShots = shotDF, gameData = gameDF, playerData = playerDF, 
           name = "Arizona", teamPlot = TRUE, saveDir = "/Users/ryan/Dropbox (Personal)/misc/bball_stats/gz22/plots")
+
+uncATuvaShots <- subset(shotDF, gameNum == 2497311)
+
+uva5some <- c(1187568,1132312,1230369,1063656,1406026)
+
+uncATuvaShots$UVAdeath <- ifelse(uncATuvaShots$h1 %in% uva5some &
+                                   uncATuvaShots$h2 %in% uva5some &
+                                   uncATuvaShots$h3 %in% uva5some &
+                                   uncATuvaShots$h4 %in% uva5some &
+                                   uncATuvaShots$h5 %in% uva5some, 1, 0)
+
+
+uncATuva5some <- subset(uncATuvaShots, UVAdeath == 1)
+uncATuvaOther <- subset(uncATuvaShots, UVAdeath == 0)
+
+uncATuva5someUVAshots <- subset(uncATuva5some, shotTeam == "Virginia")
+uncATuva5someUNCshots <- subset(uncATuva5some, shotTeam == "North Carolina")
+
+uncATuvaOtherUVAshots <- subset(uncATuvaOther, shotTeam == "Virginia")
+uncATuvaOtherUNCshots <- subset(uncATuvaOther, shotTeam == "North Carolina")
+
+
+plotFromDF(plotShots = uncATuva5someUVAshots, gameData = gameDF, playerData = playerDF,
+           plotTitle = "UVA 'Fearsome Fivesome'", colPalette = "blueRed", 
+           saveDir = "/Users/ryan/Dropbox (Personal)/misc/bball_stats/gz22/plots")
+
+plotFromDF(plotShots = uncATuva5someUNCshots, gameData = gameDF, playerData = playerDF,
+           plotTitle = "UNC v UVA 'Fearsome Fivesome'", colPalette = "blueRed", 
+           saveDir = "/Users/ryan/Dropbox (Personal)/misc/bball_stats/gz22/plots")
+
+plotFromDF(plotShots = uncATuvaOtherUVAshots, gameData = gameDF, playerData = playerDF,
+           plotTitle = "UVA Other Lineups", colPalette = "blueRed", 
+           saveDir = "/Users/ryan/Dropbox (Personal)/misc/bball_stats/gz22/plots")
+
+plotFromDF(plotShots = uncATuvaOtherUNCshots, gameData = gameDF, playerData = playerDF,
+           plotTitle = "UNC v UVA Other Lineups", colPalette = "blueRed", 
+           saveDir = "/Users/ryan/Dropbox (Personal)/misc/bball_stats/gz22/plots")
+
+#unc 3 PG
+allUNC <- subset(shotDF, shotTeam == "North Carolina")
+
+allUNC$PGcount  <- allUNC$a1 %in% uncPGs + allUNC$a2 %in% uncPGs + allUNC$a3 %in% uncPGs + allUNC$a4 %in% uncPGs + allUNC$a5 %in% uncPGs +
+  allUNC$h1 %in% uncPGs + allUNC$h2 %in% uncPGs + allUNC$h3 %in% uncPGs + allUNC$h4 %in% uncPGs + allUNC$h5 %in% uncPGs
+
+unc3PG <- subset(allUNC, PGcount == 3)
+unc2PG <- subset(allUNC, PGcount == 2)
+unc1PG <- subset(allUNC, PGcount == 1)
+
+plotFromDF(plotShots = unc3PG, gameData = gameDF, playerData = playerDF,
+           plotTitle = "UNC 3-PG Lineups", colPalette = "blueRed", 
+           saveDir = "/Users/ryan/Dropbox (Personal)/misc/bball_stats/gz22/plots")
+
+plotFromDF(plotShots = unc2PG, gameData = gameDF, playerData = playerDF,
+           plotTitle = "UNC 2-PG Lineups", colPalette = "blueRed", 
+           saveDir = "/Users/ryan/Dropbox (Personal)/misc/bball_stats/gz22/plots")
+
+plotFromDF(plotShots = unc1PG, gameData = gameDF, playerData = playerDF,
+           plotTitle = "UNC 1-PG Lineups", colPalette = "blueRed", 
+           saveDir = "/Users/ryan/Dropbox (Personal)/misc/bball_stats/gz22/plots")
 ```
 
 
