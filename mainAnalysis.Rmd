@@ -64,7 +64,8 @@ To-Do
 -best overall on/off (defensive and offensive on/off)
 -good shooters good shots (after logos)
 
-
+-change shot value calculation to time + distance only (3s, long2, mid2, close)
+-find best shooting LINEUPS for each team
 
 -read in all 2021-22 data
 -get team logos into a dataframe
@@ -218,6 +219,12 @@ saveDir <- "/Users/ryan/Dropbox (Personal)/misc/bball_stats/gz22/plots"
 #save the latest shotDF as an RDS, and then pull these straight in inside the function
 plotShots(allShots = shotDF, gameData = gameDF, playerData = playerDF, 
           name = "Caleb Love", saveDir = "/Users/ryan/Dropbox (Personal)/misc/bball_stats/gz22/plots")
+
+plotShots(allShots = shotDF, gameData = gameDF, playerData = playerDF, 
+          name = "RJ Davis", saveDir = "/Users/ryan/Dropbox (Personal)/misc/bball_stats/gz22/plots")
+
+singleGame(allShots = shotDF, gameData = gameDF, playerData = playerDF, lastNgames = 4,
+          name = "RJ Davis", saveDir = "/Users/ryan/Dropbox (Personal)/misc/bball_stats/gz22/plots")
 
 plotShots(allShots = shotDF, gameData = gameDF, playerData = playerDF, 
           name = "Arizona", teamPlot = TRUE, saveDir = "/Users/ryan/Dropbox (Personal)/misc/bball_stats/gz22/plots")
