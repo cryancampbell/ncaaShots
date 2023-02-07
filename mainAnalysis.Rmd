@@ -218,10 +218,13 @@ saveDir <- "/Users/ryan/Dropbox (Personal)/misc/bball_stats/gz22/plots"
 
 #save the latest shotDF as an RDS, and then pull these straight in inside the function
 plotShots(allShots = shotDF, gameData = gameDF, playerData = playerDF, 
-          name = "Caleb Love", saveDir = "/Users/ryan/Dropbox (Personal)/misc/bball_stats/gz22/plots")
+          name = "Pete Nance", saveDir = "/Users/ryan/Dropbox (Personal)/misc/bball_stats/gz22/plots")
 
 plotShots(allShots = shotDF, gameData = gameDF, playerData = playerDF, 
           name = "RJ Davis", saveDir = "/Users/ryan/Dropbox (Personal)/misc/bball_stats/gz22/plots")
+
+plotShots(allShots = shotDF, gameData = gameDF, playerData = playerDF, 
+          name = "Caleb Love", saveDir = "/Users/ryan/Dropbox (Personal)/misc/bball_stats/gz22/plots")
 
 singleGame(allShots = shotDF, gameData = gameDF, playerData = playerDF, lastNgames = 4,
           name = "RJ Davis", saveDir = "/Users/ryan/Dropbox (Personal)/misc/bball_stats/gz22/plots")
