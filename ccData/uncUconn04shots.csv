@@ -1,0 +1,10 @@
+Player,CloseMade,Close,CloseAsst,5to10ftMade,5to10ft,5to10ftAsst,10to20ftMade,10to20ft,10to20ftAsst,leftCorner3Made,leftCorner3,leftCorner3Asst,leftWing3Made,leftWing3,leftWing3Asst,topOfKey3Made,topOfKey3,topOfKey3Asst,rightWing3Made,rightWing3,rightWing3Asst,rightCorner3Made,rightCorner3,rightCorner3Asst,Player,Number,Year,Jersey,AA,Player,Open2sMade,Open2s,LC2sMade,LC2s,Contested2sMade,Contested2s,HC2sMade,HC2s,Open3sMade,Open3s,LC3sMade,LC3s,Contested3sMade,Contested3s,HC3sMade,HC3s,FTsMade,FTs,Avg. Shot Value,Total Shot Value,Points,Shot-Making
+"Felton, Raymond",1,2,0,,,0,,,0,0,1,0,,,0,0,1,0,1,2,0,,,0,"Felton, Raymond",2,SO,Honored,,"Felton, Raymond",,,,,1,1,0,1,,,1,3,0,1,,,1,2,0.892,6.2,6,-0.2
+"Manuel, Jackie",3,6,2,,,0,,,0,,,0,,,0,,,0,,,0,,,0,"Manuel, Jackie",5,JR,,,"Manuel, Jackie",,,3,4,0,1,0,2,,,,,,,,,1,2,1.082,8.6,7,-1.6
+"May, Sean",3,11,1,0,2,0,,,0,,,0,,,0,0,1,0,,,0,,,0,"May, Sean",42,SO,Honored,T,"May, Sean",1,1,2,3,0,5,0,4,,,0,1,,,,,2,2,0.829,12.39,8,-4.39
+"McCants, Rashad",2,5,2,3,3,2,2,2,1,,,0,2,3,2,,,0,1,3,1,,,0,"McCants, Rashad",32,SO,Honored,T,"McCants, Rashad",1,1,6,6,0,2,0,1,,,3,4,0,2,,,4,4,1.017,18.2,27,8.8
+"Noel, David",3,5,2,,,0,,,0,,,0,,,0,,,0,,,0,,,0,"Noel, David",34,SO,,,"Noel, David",3,4,,,,,0,1,,,,,,,,,3,6,1.51,11.85,9,-2.85
+"Sanders, Byron",0,1,0,0,1,0,,,0,,,0,,,0,,,0,,,0,,,0,"Sanders, Byron",41,SO,,,"Sanders, Byron",,,0,1,,,0,1,,,,,,,,,0,2,0.814,2.4,0,-2.4
+"Scott, Melvin",0,1,0,,,0,1,2,0,,,0,,,0,0,2,0,1,2,1,,,0,"Scott, Melvin",1,JR,,,"Scott, Melvin",1,1,0,1,0,1,,,,,1,3,0,1,,,6,6,1.112,10.95,11,0.05
+"Williams, Jawad",1,3,1,0,1,0,2,2,0,,,0,0,1,0,2,2,2,1,1,1,,,0,"Williams, Jawad",21,JR,,,"Williams, Jawad",1,1,,,2,3,0,1,,,3,4,,,,,3,3,0.964,10.05,18,7.95
+Total,13,34,8,3,7,2,5,6,1,0,1,0,2,4,2,2,6,2,4,8,3,0,0,0,Total,,,,,Total,7,8,11,15,3,13,0,11,0,0,8,15,0,4,0-0,,20,27,1.023,80.64,86,5.36

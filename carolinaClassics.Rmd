@@ -1,0 +1,58 @@
+---
+title: "carolinaClassics"
+output: html_document
+date: "2023-03-25"
+---
+
+```{r setup, include=FALSE}
+library(ggplot2)
+
+gameData <- read.csv2("ccData/uncUconn04shots.csv", sep = ",", dec = ".")
+gameData[is.na(gameData)] <- 0
+
+playerData <- subset(gameData, Player != "Total")
+
+playerData$First <- ""
+playerData$Last <- ""
+
+for (n in 1:dim(playerData)[1]){
+  playerData$First[n] <- strsplit(x = playerData$Player[n], split = ",")[[1]][2]
+  playerData$Last[n] <- strsplit(x = playerData$Player[n], split = ",")[[1]][1]
+}
+
+playerData$boxColor <- ""
+playerData$numColor <- ""
+
+playerData$numColor <- ifelse(playerData$Jersey == "Honored", "white", "navy")
+playerData$boxColor <- ifelse(playerData$Jersey == "Honored", "dodgerblue", "gray90")
+```
+
+
+```{r}
+playerData$Shots <- playerData$Open2s + playerData$LC2s + playerData$HC2s + playerData$Contested2s + playerData$Open3s + playerData$LC3s + playerData$Contested3s + playerData$HC3s
+
+
+
+
+```
+
+
+
+
+```{r}
+
+
+
+ggplot(data = playerData,
+       aes(x = Shots,
+           y = Shot.Making)) +
+  geom_hline(yintercept = 0) +
+  geom_point(size = 22, shape = 15, col = "dodgerblue", alpha = .5) +
+  geom_text(aes(label = Number), size = 10, nudge_y = -.25, col = "white") +
+  geom_text(aes(label = Last), nudge_y = .75, size = 4, col = "white") +
+  xlim(c(.5,max(playerData$Shots + 1))) +
+  theme_bw()
+
+
+```
+
