@@ -7,7 +7,10 @@ date: "2023-03-25"
 ```{r setup, include=FALSE}
 library(ggplot2)
 
-gameData <- read.csv2("ccData/uncUconn04shots.csv", sep = ",", dec = ".")
+figDir <- "~/Documents/giterdone/ncaaShots/carolinaClassics/figures/"
+dataDir <- "~/Documents/giterdone/ncaaShots/carolinaClassics/"
+
+gameData <- read.csv2(paste0(dataDir,"uncUconn04shots.csv"), sep = ",", dec = ".")
 gameData[is.na(gameData)] <- 0
 
 playerData <- subset(gameData, Player != "Total")
@@ -23,36 +26,36 @@ for (n in 1:dim(playerData)[1]){
 playerData$boxColor <- ""
 playerData$numColor <- ""
 
-playerData$numColor <- ifelse(playerData$Jersey == "Honored", "white", "navy")
-playerData$boxColor <- ifelse(playerData$Jersey == "Honored", "dodgerblue", "gray90")
-```
+playerData$numColor <- ifelse(playerData$Jersey == "Honored", "#4B9CD3", "#13294B")
+playerData$boxColor <- ifelse(playerData$Jersey == "Honored", "#F8F8F8", "#F8F8F8")
 
 
-```{r}
+#get raw number of shots
 playerData$Shots <- playerData$Open2s + playerData$LC2s + playerData$HC2s + playerData$Contested2s + playerData$Open3s + playerData$LC3s + playerData$Contested3s + playerData$HC3s
 
-
-
-
 ```
 
 
 
 
 ```{r}
-
-
+playerData <- playerData[order(playerData$Jersey),]
 
 ggplot(data = playerData,
        aes(x = Shots,
            y = Shot.Making)) +
   geom_hline(yintercept = 0) +
-  geom_point(size = 22, shape = 15, col = "dodgerblue", alpha = .5) +
-  geom_text(aes(label = Number), size = 10, nudge_y = -.25, col = "white") +
-  geom_text(aes(label = Last), nudge_y = .75, size = 4, col = "white") +
+  geom_point(size = 22.5, shape = 0, col = playerData$numColor, alpha = 1) +
+  geom_point(size = 22, shape = 15, col = playerData$boxColor, alpha = .5) +
+  geom_text(aes(label = Number), size = 10, nudge_y = -.4, col = playerData$numColor) +
+  geom_text(aes(label = Last), nudge_y = 1, size = 4, col = playerData$numColor) +
   xlim(c(.5,max(playerData$Shots + 1))) +
-  theme_bw()
+  ylim(c(min(playerData$Shot.Making) - 2,
+         max(playerData$Shot.Making) + 2)) +
+  theme_bw() + theme(axis.title = element_text(size = 20),
+                     panel.grid = element_blank())
 
+ggsave(filename = paste0(paste0(figDir,"UNC_Uconn.png")), height = 4, width = 6)
 
 ```
 
