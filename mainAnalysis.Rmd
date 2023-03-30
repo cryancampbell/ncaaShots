@@ -52,6 +52,12 @@ Error in read.table(file = file, header = header, sep = sep, quote = quote,  :
 Error in if (lastShortReset > lastFullReset) { : 
   argument is of length zero
 
+gameList
+       V1
+1 2547522
+2 2547523
+pullShots.sh: line 75: 3rd: value too great for base (error token is "3rd")
+pullShots.sh: line 75: * 60: syntax error: operand expected (error token is "* 60")
 
 
 
@@ -93,19 +99,21 @@ for (gameDate in needDates) {
   getGames <- paste0("sh getGames.sh ",gameDate)
   system(getGames)
   
-  gameList <- read.table("tmpFiles/gameList.txt")
-  
-  for (g in gameList$V1) {
+  if (file.size("tmpFiles/gameList.txt") > 0) {
+    gameList <- read.table("tmpFiles/gameList.txt")
     
-    if (! g %in% readRDS(paste0(gitDir,"gameDatabase.RDS"))$gameNum ) {
-      shotDB <- readRDS(paste0(gitDir,"shotDatabase.RDS"))
-      gameDB <- readRDS(paste0(gitDir,"gameDatabase.RDS"))
-      playerDB <- readRDS(paste0(gitDir,"playerDatabase.RDS"))
+    for (g in gameList$V1) {
       
-      gzShots(gameNum = g,
-              shotDB = shotDB,
-              playerDB = playerDB,
-              gameDB = gameDB)
+      if (! g %in% readRDS(paste0(gitDir,"gameDatabase.RDS"))$gameNum ) {
+        shotDB <- readRDS(paste0(gitDir,"shotDatabase.RDS"))
+        gameDB <- readRDS(paste0(gitDir,"gameDatabase.RDS"))
+        playerDB <- readRDS(paste0(gitDir,"playerDatabase.RDS"))
+        
+        gzShots(gameNum = g,
+                shotDB = shotDB,
+                playerDB = playerDB,
+                gameDB = gameDB)
+      }
     }
   }
 }
@@ -149,6 +157,41 @@ length(subset(shotDF, FGtype == 3 & depth > 15 & calcDist > 26 & calcDist <= 28)
 length(subset(shotDF, FGtype == 3 & depth > 15 & calcDist > 28 & calcDist <= 30)$outcome == "make")
 length(subset(shotDF, FGtype == 3 & depth > 15 & calcDist > 30)$outcome == "make")
 ```
+
+```{r side to side}
+rlSplit <- vector()
+
+for (g in 1:dim(gameDF)[1]) {
+  gn <- gameDF$gameNum[g]
+  
+  singleGame <- subset(shotDF, gameNum == gn)
+  singleGame <- subset(singleGame, angle != 90)
+  
+  rlSplit <- c(rlSplit,mean(singleGame$angle < 90))
+}
+
+ggplot() +
+  geom_histogram(aes(x = rlSplit), bins = 50) +
+  geom_vline(xintercept = .84) +
+  xlim(c(0,1))
+
+
+which(rlSplit > .84)
+which(rlSplit < .25)
+
+ggplot(data = subset(shotDF, gameNum == shotDF$gameNum[which(rlSplit > .84)[5]]),
+       aes(x = baseline,
+           y = depth)) +
+  geom_point()
+
+ggplot(data = subset(shotDF, gameNum == shotDF$gameNum[which(rlSplit < .25)[2]]),
+       aes(x = baseline,
+           y = depth)) +
+  geom_point()
+
+```
+
+
 
 quadrant percents
 ```{r add expected value}
