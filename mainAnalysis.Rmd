@@ -182,13 +182,22 @@ which(rlSplit < .25)
 ggplot(data = subset(shotDF, gameNum == shotDF$gameNum[which(rlSplit > .84)[5]]),
        aes(x = baseline,
            y = depth)) +
-  geom_point()
+  geom_point(size = 4, shape = 15, alpha = .33)
 
 ggplot(data = subset(shotDF, gameNum == shotDF$gameNum[which(rlSplit < .25)[2]]),
        aes(x = baseline,
            y = depth)) +
-  geom_point()
+  geom_point(size = 4, shape = 15, alpha = .33)
 
+ggplot() +
+  geom_histogram(aes(x = rlSplit[which(gameDF$gameNum %in% subset(gameDF, homeAbbv == "UNC" | awayAbbv == "UNC")$gameNum)]),
+                 bins = 50) +
+  xlim(c(0,1))
+
+ggplot(data = subset(shotDF, gameNum == gameDF$gameNum[1]),
+       aes(x = baseline,
+           y = depth)) +
+  geom_point(size = 4, shape = 15, alpha = .33)
 ```
 
 
